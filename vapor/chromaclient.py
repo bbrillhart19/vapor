@@ -7,7 +7,7 @@ collection = client.create_collection("test")
 collection.add(
     documents=[
         "This is a document about pineapple",
-        "This is a document about oranges"
+        "This is a document about oranges",
     ],
-    ids=["id1", "id2"]
+    ids=["id1", "id2"],
 )

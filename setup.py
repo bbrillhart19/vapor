@@ -11,6 +11,9 @@ setup(
     url="https://github.com/bbrillhart19/vapor",
     install_requires=[
         "python-steam-api",
+        "chromadb",
+        "networkx",
+        "asyncio",
     ],
     extras_require={
         "dev": [
