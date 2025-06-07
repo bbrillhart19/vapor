@@ -14,6 +14,7 @@ setup(
         "chromadb",
         "networkx",
         "asyncio",
+        "html2text",
     ],
     extras_require={
         "dev": [
