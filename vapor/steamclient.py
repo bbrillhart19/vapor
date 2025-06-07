@@ -19,4 +19,5 @@ steam = Steam(STEAM_API_KEY)
 response = steam.apps.search_games("helldivers 2")
 app_id = response["apps"][0]["id"][0]
 response = steam.apps.get_app_details(app_id)
-print(response[str(app_id)]["data"]["about_the_game"])
+print(response[str(app_id)]["data"].keys())
+# print(response[str(app_id)]["data"]["about_the_game"])

@@ -13,6 +13,7 @@ h = HTML2Text()
 h.ignore_links = True
 h.ignore_emphasis = True
 h.ignore_images = True
+friends_list = steam_client.users.get_user_friends_list(os.getenv("STEAM_ID", ""))
 owned_games = steam_client.users.get_owned_games(os.getenv("STEAM_ID", ""))
 
 documents = []
