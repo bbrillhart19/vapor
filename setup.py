@@ -11,10 +11,10 @@ setup(
     url="https://github.com/bbrillhart19/vapor",
     install_requires=[
         "python-steam-api",
-        "chromadb",
         "networkx",
-        "asyncio",
         "html2text",
+        "matplotlib", # for nx plotting
+        "scipy", # for nx plotting
     ],
     extras_require={
         "dev": [
