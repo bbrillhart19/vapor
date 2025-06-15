@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from steam_web_api import Steam
 import networkx as nx
 from rich.progress import track
+from html2text import HTML2Text
 
 from vapor.utils import utils
 
@@ -23,6 +24,7 @@ class SteamUserGraph(nx.Graph):
         self.steam_id = utils.get_env_var("STEAM_ID", steam_id)
         self.steam_client = Steam(self.steam_api_key)
         self._add_node_types()
+        self.html_parser = self._setup_html_parser()
 
     @property
     def node_types(self) -> set:
@@ -39,6 +41,40 @@ class SteamUserGraph(nx.Graph):
             if node in self.adj[nt]:
                 return nt
         raise IndexError(f"{node} not found in any node type")
+
+    def _validate_node_type(self, node_type: str) -> str:
+        if node_type not in self.node_types:
+            raise ValueError(f"Got invalid node_type={node_type}")
+        return node_type
+
+    def _is_node_type(self, node: str, node_type: str) -> bool:
+        return self._get_node_type(node) == self._validate_node_type(node_type)
+
+    def is_game(self, node: str) -> bool:
+        return self._is_node_type(node, "game")
+
+    def is_user(self, node: str) -> bool:
+        return self._is_node_type(node, "user")
+
+    def is_self(self, node: str) -> bool:
+        return self._is_node_type(node, "self")
+
+    @property
+    def games(self) -> dict[str, str]:
+        return nx.get_node_attributes(self.subgraph(self.adj["games"]), "name")
+
+    @property
+    def users(self) -> dict[str, str]:
+        # user_nodes = [n for n in self.adj["user"]]
+        return nx.get_node_attributes(self.subgraph(self.adj["user"]), "name")
+
+    @staticmethod
+    def _setup_html_parser() -> HTML2Text:
+        h = HTML2Text()
+        h.ignore_links = True
+        h.ignore_emphasis = True
+        h.ignore_images = True
+        return h
 
     def save(self, filepath: Path | str) -> None:
         filepath = utils.cast_path(filepath)
@@ -179,7 +215,37 @@ class SteamUserGraph(nx.Graph):
         )
         plt.show()
 
-    def user_subgraph(self, user_id: str) -> SteamUserGraph:
-        # Assemble all nodes to create this user's subgraph
-        nodes = [user_id] + [n for n in self.adj[user_id]] + list(self.node_types)
-        return self.subgraph(nodes)
+    def extract_subgraph(self, node: str | None = None) -> SteamUserGraph | None:
+        # Extract the subgraph (+node types) for the node
+        if not node:
+            node = self.steam_id
+        if node not in self:
+            print(f"Node={node} not found.")
+            return None
+
+        nodes = {node}
+        for n in self.adj[node]:
+            nodes.add(n)
+            nodes.add(self._get_node_type(n))
+        return SteamUserGraph(self.subgraph(nodes))
+
+    def about_the_game(self, app_id: str) -> tuple[str, str]:
+        app_details = self._query_steam(
+            self.steam_client.apps.get_app_details, app_id=int(app_id)
+        )
+
+        try:
+            game_doc_html = app_details[app_id]["data"]["about_the_game"]
+        except KeyError:
+            print(f"Could not retrieve game details for app_id={app_id}")
+            game_doc_html = ""
+
+        game_doc = self.html_parser.handle(game_doc_html)
+
+        try:
+            app_name = app_details[app_id]["data"]["name"]
+        except KeyError:
+            print(f"Could not retrieve name for app_id={app_id}")
+            app_name = app_id
+
+        return app_name, game_doc

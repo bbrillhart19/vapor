@@ -15,6 +15,7 @@ setup(
         "html2text",
         "matplotlib", # for nx plotting
         "scipy", # for nx plotting
+        "rich",
     ],
     extras_require={
         "dev": [
