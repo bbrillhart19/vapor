@@ -4,9 +4,9 @@ fp = "./data/steamgraph.gml.gz"
 
 G = SteamUserGraph()
 G.populate_from_friends(hops=1)
-
-
 G.save(fp)
 
-G_in = SteamUserGraph.load(fp)
-G_in.draw()
+print(f"Graph population complete, saved to {fp}")
+print("Stats:")
+for nt in G.node_types:
+    print(nt, len(G.adj[nt]))
