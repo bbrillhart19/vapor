@@ -2,4 +2,4 @@ data/
 dockerfiles/
 docs/
 .gitignore
-compose.*.yaml
+compose*.yaml
