@@ -44,12 +44,10 @@ docker compose build
 ## Usage
 Currently, this program simply queries the Steam Web API to find games that you and your friends (and your friends' friends, and...) are playing and creates the resulting graph.
 
-TODO: Transition to docker commands.
-
 ### Graph Population
-To create your `SteamUserGraph` and store it, run:
+To create your `SteamUserGraph` and store it to your `VAPOR_DATA_PATH`, run:
 ```bash
-python vapor/populate.py
+docker compose run --rm vapor python vapor/populate.py
 ```
 Example output (shortened):
 ```text
@@ -62,18 +60,18 @@ user 11
 ```
 
 ### Graph Display
-To display your "subgraph", which is only your friends and the games you have in common:
+To save a plot to your `VAPOR_DATA_PATH` of your "subgraph", which is only your immediate friends and games:
 ```bash
-python vapor/draw.py
+docker compose run --rm python vapor/draw.py
 ```
 ![subgraph](docs/images/subgraph.png)
 
 ### Game Info
 To retrieve a game description along with information about who in your `SteamUserGraph` plays the game:
 ```bash
-python vapor/info.py -a <app_id>
+docker compose run --rm vapor python vapor/info.py -a <app_id>
 # Example - Stardew Valley:
-python vapor/info.py -a 413150
+docker compose run --rm vapor python vapor/info.py -a 413150
 ```
 Example output (shortened):
 ```text
