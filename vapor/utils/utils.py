@@ -21,3 +21,7 @@ def create_dir(pth: Path | str, clear_contents: bool = False) -> Path:
         shutil.rmtree(pth)
     pth.mkdir(exist_ok=True, parents=True)
     return pth
+
+
+def default_nx_graph_file() -> Path:
+    return cast_path(get_env_var("VAPOR_DATA_PATH")).joinpath("nxsteamgraph.gml.gz")

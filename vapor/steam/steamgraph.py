@@ -196,7 +196,7 @@ class SteamUserGraph(nx.Graph):
             # NOTE: Something would be very wrong if the friend doesn't have a steamid
             self.populate_from_friends(user_id, friend["steamid"], hops - 1)
 
-    def draw(self) -> None:
+    def draw(self, savefn: Path | str | None = None) -> None:
         pos = nx.spring_layout(self)
         node_type_colors = {
             "self": "red",
@@ -213,7 +213,15 @@ class SteamUserGraph(nx.Graph):
         nx.draw_networkx_labels(
             self, pos=pos, labels=nx.get_node_attributes(self, "name"), font_size=6
         )
-        plt.show()
+        if not savefn:
+            plt.tight_layout()
+            plt.show()
+        else:
+            savefn = utils.cast_path(savefn)
+            savefn.parent.mkdir(exist_ok=True, parents=True)
+            plt.savefig(savefn, bbox_inches="tight")
+            plt.close()
+            print(f"SteamGraph plot saved to: {savefn}")
 
     def extract_subgraph(self, node: str | None = None) -> SteamUserGraph | None:
         # Extract the subgraph (+node types) for the node
