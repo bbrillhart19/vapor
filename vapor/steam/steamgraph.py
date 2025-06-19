@@ -166,10 +166,7 @@ class SteamUserGraph(nx.Graph):
             self._add_game_node(game, user_id)
 
     def populate_from_friends(
-        self,
-        friend_id: str | None = None,
-        user_id: str | None = None,
-        hops: int = 2,
+        self, friend_id: str | None = None, user_id: str | None = None, hops: int = 2,
     ) -> None:
         # No more hops allowed, skip adding anything from this user
         if hops < 0:
@@ -206,9 +203,7 @@ class SteamUserGraph(nx.Graph):
         node_colors = [node_type_colors[self._get_node_type(n)] for n in self.nodes]
         nx.draw_networkx_edges(self, pos=pos)
         nx.draw_networkx_nodes(
-            self,
-            pos=pos,
-            node_color=node_colors,
+            self, pos=pos, node_color=node_colors,
         )
         nx.draw_networkx_labels(
             self, pos=pos, labels=nx.get_node_attributes(self, "name"), font_size=6

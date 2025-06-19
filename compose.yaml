@@ -1,0 +1,12 @@
+### Compose structure to coordinate Vapor and its dependencies ###
+services:
+  # The vapor python package
+  vapor:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/vapor.dockerfile
+    image: vapor:latest
+    environment:
+      - STEAM_API_KEY:${STEAM_API_KEY}
+      - STEAM_ID:${STEAM_ID}
+    command: echo $STEAM_API_KEY

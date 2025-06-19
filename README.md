@@ -4,32 +4,34 @@ Vapor
 Doing stuff with Steam. Don't know what yet.
 
 ## Getting Started
+Currently, the application is not published anywhere and must be built from source, thus you must first clone the repository to the system you'd like to run `vapor` on.
 
-### Requirements
-- Python >= 3.9
-- Pip
+### Docker
+This application requires Docker to run, whether you are a user or developing the codebase. Follow these instructions to install Docker depending on your OS:
 
-### Installation
-Install the package for development with:
-```bash
-$ pip install -e .[dev]
-```
-
-### Environment Variables
-You'll need to obtain certain API keys and set the following environment variables:
+TODO
 
 #### Steam
 Acquire a Steam Web API Key [here](https://steamcommunity.com/dev) (use `localhost` for the domain name) and set the following environment variable:
-```bash
+```shell
 $ export STEAM_API_KEY="<your api key>"
 ```
 Also, get your Steam ID (the actual ID number, not your username) and set this:
-```bash
+```shell
 $ export STEAM_ID="<your steam id>"
+```
+TODO: Windows/Mac
+
+### Installation
+Build the application containers with:
+```shell
+docker compose build
 ```
 
 ## Usage
 Currently, this program simply queries the Steam Web API to find games that you and your friends (and your friends' friends, and...) are playing and creates the resulting graph.
+
+TODO: Transition to docker commands.
 
 ### Graph Population
 To create your `SteamUserGraph` and store it, run:
@@ -69,3 +71,35 @@ You do not play this game.
 7 user(s) related to you play this game:
 ["Endor's Game", 'Chasm', 'JFKShotFirst', 'MistaHiggins', 'KJos', 'emily.puls0828', 'The Great Jumanji']
 ```
+
+## Development
+Refer to this section if you are developing the codebase. 
+
+### Requirements
+- Python
+- Pip
+
+### Installation
+Install the editable `dev` package, preferably within a virtual environment, with:
+```shell
+pip install -e .[dev]
+```
+
+### Development Checklist
+- [] Ensure [environment](#installation-1) is setup and activated
+- [] Make code changes with proper [formatting](#code-formatting)
+- [] Locally, ensure passing [unit tests](#unit-tests)
+- [] Additionally run necessary [integration tests](#integration-tests)
+- [] TODO: CI/CD with Actions
+
+#### Code Formatting
+This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
+```shell
+black vapor
+```
+
+#### Unit Tests
+TODO - `pytest`
+
+#### Integration Tests
+TODO - Locally run with Docker 
