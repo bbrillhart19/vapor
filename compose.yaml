@@ -7,6 +7,8 @@ services:
       dockerfile: ./dockerfiles/vapor.dockerfile
     image: vapor:latest
     environment:
-      - STEAM_API_KEY:${STEAM_API_KEY}
-      - STEAM_ID:${STEAM_ID}
+      - STEAM_API_KEY=${STEAM_API_KEY}
+      - STEAM_ID=${STEAM_ID}
+    volumes:
+      - ${VAPOR_DATA_PATH}:/vapor/data
     command: echo $STEAM_API_KEY

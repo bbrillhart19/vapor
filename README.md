@@ -6,23 +6,36 @@ Doing stuff with Steam. Don't know what yet.
 ## Getting Started
 Currently, the application is not published anywhere and must be built from source, thus you must first clone the repository to the system you'd like to run `vapor` on.
 
-### Docker
-This application requires Docker to run, whether you are a user or developing the codebase. Follow these instructions to install Docker depending on your OS:
-
-TODO
+### Setup Environment
+A few environment variables need to be acquired and set for your personal use:
 
 #### Steam
 Acquire a Steam Web API Key [here](https://steamcommunity.com/dev) (use `localhost` for the domain name) and set the following environment variable:
 ```shell
-$ export STEAM_API_KEY="<your api key>"
+export STEAM_API_KEY="<your api key>"
 ```
 Also, get your Steam ID (the actual ID number, not your username) and set this:
 ```shell
-$ export STEAM_ID="<your steam id>"
+export STEAM_ID="<your steam id>"
 ```
 TODO: Windows/Mac
 
-### Installation
+#### Data Storage
+Determine a good place to store and persist your `vapor` data, and then set the path to this variable:
+```shell
+export VAPOR_DATA_PATH="<path/to/your/data/folder>"
+```
+
+### Docker Installation
+This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
+
+#### Windows/Mac
+Install [Docker Desktop]()
+
+#### Linux
+Install [Docker via CLI]()
+
+#### Build
 Build the application containers with:
 ```shell
 docker compose build
@@ -36,7 +49,10 @@ TODO: Transition to docker commands.
 ### Graph Population
 To create your `SteamUserGraph` and store it, run:
 ```bash
-$ python vapor/populate.py
+python vapor/populate.py
+```
+Example output (shortened):
+```text
 ### Adding games... ###
 Graph population complete, saved to ./data/steamgraph.gml.gz
 Stats:
@@ -48,16 +64,19 @@ user 11
 ### Graph Display
 To display your "subgraph", which is only your friends and the games you have in common:
 ```bash
-$ python vapor/draw.py
+python vapor/draw.py
 ```
 ![subgraph](docs/images/subgraph.png)
 
 ### Game Info
 To retrieve a game description along with information about who in your `SteamUserGraph` plays the game:
 ```bash
-$ python vapor/info.py -a <app_id>
+python vapor/info.py -a <app_id>
 # Example - Stardew Valley:
-$ python vapor/info.py -a 413150
+python vapor/info.py -a 413150
+```
+Example output (shortened):
+```text
 <<< Game info for app_id=413150 >>>
 
 ========== Stardew Valley ==========
@@ -73,7 +92,7 @@ You do not play this game.
 ```
 
 ## Development
-Refer to this section if you are developing the codebase. 
+Refer to this section only if you are developing the codebase. 
 
 ### Requirements
 - Python
@@ -86,7 +105,7 @@ pip install -e .[dev]
 ```
 
 ### Development Checklist
-- [] Ensure [environment](#installation-1) is setup and activated
+- [] Ensure [environment](#installation) is setup and activated
 - [] Make code changes with proper [formatting](#code-formatting)
 - [] Locally, ensure passing [unit tests](#unit-tests)
 - [] Additionally run necessary [integration tests](#integration-tests)

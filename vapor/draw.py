@@ -1,7 +1,8 @@
 from vapor.steam import SteamUserGraph
+from vapor.utils import utils
 
-fp = "./data/steamgraph.gml.gz"
-
+fp = utils.default_nx_graph_file()
 G = SteamUserGraph.load(fp)
 
-G.extract_subgraph().draw()
+savefn = fp.parent.joinpath(f"{G.steam_id}_subgraph.png")
+G.extract_subgraph().draw(savefn)

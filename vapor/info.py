@@ -1,8 +1,9 @@
 from vapor.steam import SteamUserGraph
+from vapor.utils import utils
 
 
 def info(app_id: str) -> None:
-    fp = "./data/steamgraph.gml.gz"
+    fp = utils.default_nx_graph_file()
     G = SteamUserGraph.load(fp)
 
     print(f"<<< Game info for app_id={app_id} >>>")

@@ -6,4 +6,7 @@ WORKDIR /vapor
 # See .dockerignore for which files are excluded
 COPY . .
 
+# Install the package
 RUN pip install -e .
+
+ENV VAPOR_DATA_PATH="/vapor/data"
