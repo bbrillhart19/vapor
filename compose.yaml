@@ -10,5 +10,23 @@ services:
       - STEAM_API_KEY=${STEAM_API_KEY}
       - STEAM_ID=${STEAM_ID}
     volumes:
-      - ${VAPOR_DATA_PATH}:/vapor/data
+      - ${VAPOR_DATA_PATH}/vapor:/vapor/data
     command: echo $STEAM_API_KEY
+    profiles:
+      - vapor
+
+  # Neo4j GraphDB 
+  neo4j:
+    image: neo4j:2025.05.0
+    volumes:
+      - ${VAPOR_DATA_PATH}/neo4j/logs:/logs
+      - ${VAPOR_DATA_PATH}/neo4j/config:/config
+      - ${VAPOR_DATA_PATH}/neo4j/data:/data
+      - ${VAPOR_DATA_PATH}/neo4j/plugin:/plugins
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
+    ports:
+      - 7474:7474
+      - 7687:7687
+    restart: always
+    
