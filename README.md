@@ -7,43 +7,36 @@ Doing stuff with Steam. Don't know what yet.
 Currently, the application is not published anywhere and must be built from source, thus you must first clone the repository to the system you'd like to run `vapor` on.
 
 ### Setup Environment
-A few environment variables need to be acquired and set for your personal use:
-
-#### Steam
-Acquire a Steam Web API Key [here](https://steamcommunity.com/dev) (use `localhost` for the domain name) and set the following environment variable:
+A few environment variables need to be acquired and set for your personal use. Copy the `.env.example` file like this so you can customize it for yourself:
 ```shell
-export STEAM_API_KEY="<your api key>"
+cp .env.example .env
 ```
-Also, get your Steam ID (the actual ID number, not your username) and set this:
-```shell
-export STEAM_ID="<your steam id>"
-```
-TODO: Windows/Mac
-
-#### Data Storage
-Determine a good place to store and persist your `vapor` data, and then set the path to this variable:
-```shell
-export VAPOR_DATA_PATH="<path/to/your/data/folder>"
-```
+And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire a Steam Web API Key [here](https://steamcommunity.com/dev).
 
 ### Docker Installation
 This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
 
 #### Windows/Mac
-Install [Docker Desktop]()
+Install Docker Desktop [for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) or [for Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
 
-#### Linux
-Install [Docker via CLI]()
-
-#### Build
-Build the application containers with:
+#### WSL/Linux
+Install Docker via the CLI:
 ```shell
-docker compose build
+sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
 
 ## Usage
 Currently, this program simply queries the Steam Web API to find games that you and your friends (and your friends' friends, and...) are playing and creates the resulting graph.
 
+### Start Neo4j
+[Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
+```shell
+docker compose up -d
+```
+If all went well, you should be able to navigate to `http://localhost:7474` in your browser and view the `noe4j` database. If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
+
+------
+***NOTE: Everything below this^ line will be changed following `neo4j` integration***
 ### Graph Population
 To create your `SteamUserGraph` and store it to your `VAPOR_DATA_PATH`, run:
 ```bash
@@ -103,11 +96,11 @@ pip install -e .[dev]
 ```
 
 ### Development Checklist
-- [] Ensure [environment](#installation) is setup and activated
-- [] Make code changes with proper [formatting](#code-formatting)
-- [] Locally, ensure passing [unit tests](#unit-tests)
-- [] Additionally run necessary [integration tests](#integration-tests)
-- [] TODO: CI/CD with Actions
+- [ ] Ensure [environment](#installation) is setup and activated
+- [ ] Make code changes with proper [formatting](#code-formatting)
+- [ ] Locally, ensure passing [unit tests](#unit-tests)
+- [ ] Additionally run necessary [integration tests](#integration-tests)
+- [ ] TODO: CI/CD with Actions
 
 #### Code Formatting
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:

@@ -11,10 +11,8 @@ setup(
     url="https://github.com/bbrillhart19/vapor",
     install_requires=[
         "python-steam-api",
-        "networkx",
+        "neo4j-driver",
         "html2text",
-        "matplotlib", # for nx plotting
-        "scipy", # for nx plotting
         "rich",
     ],
     extras_require={
