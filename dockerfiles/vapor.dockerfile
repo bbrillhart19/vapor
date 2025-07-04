@@ -8,5 +8,3 @@ COPY . .
 
 # Install the package
 RUN pip install -e .
-
-ENV VAPOR_DATA_PATH="/vapor/data"
