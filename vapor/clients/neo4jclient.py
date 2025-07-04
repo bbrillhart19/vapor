@@ -78,6 +78,7 @@ class Neo4jClient(object):
         """
         # NOTE: Do not need both directions
         # (use directionless when with MATCH)
+        # TODO: Perhaps modify to return friend records instead of user
         return tx.run(cypher, steam_id=steam_id, friends=friends).single()
 
     def add_friends(self, steam_id: str, friends: dict[str, Any]) -> dict:
@@ -85,3 +86,35 @@ class Neo4jClient(object):
         if not record:
             raise NotFoundException(f"Could not find user with steam_id={steam_id}")
         return record["user"]
+    
+    @staticmethod
+    def _add_owned_games_tx(tx, steam_id: str, games: list[dict[str, Any]]):
+        cypher = """
+            MATCH (u:User {steamId: $steam_id})
+            UNWIND $games as game
+            MERGE (u)-[:OWNS]->(g:Game)
+            SET g.appId = game.appid
+            SET g.name = game.name
+        """
+        # TODO: Return game records as list
+        return tx.run(cypher, steam_id=steam_id, games=games)
+    
+    def add_owned_games(self, steam_id: str, games: list[dict[str, Any]]):
+        records = self._write(self._add_owned_games_tx, steam_id=steam_id, games=games)
+        # TODO: Return game records
+
+    @staticmethod
+    def _add_genres_tx(tx, games: list[dict[str, Any]]):
+        cypher = """
+            UNWIND $games as game
+            MATCH (g:Game {appId: game.appid})
+            MERGE (g)-[:HAS_GENRE]->(n:Genre)
+            SET n.name = game.genre
+        """
+        # TODO: Return genre records as list
+        return tx.run(cypher, games=games)
+    
+    def add_genres(self, games: list[dict[str, Any]]):
+        records = self._write(self._add_friends_tx, games=games)
+        # TODO Return genre records
+        
