@@ -11,9 +11,7 @@ class SteamClient(Steam):
     """`Steam` class implemented as it applies to Vapor"""
 
     def __init__(
-        self,
-        steam_api_key: str,
-        steam_id: str,
+        self, steam_api_key: str, steam_id: str,
     ):
         super().__init__(steam_api_key)
         self.steam_id = steam_id
@@ -93,9 +91,7 @@ class SteamClient(Steam):
         """Get friends list for `user_id` with details specifid by `fields`"""
         # Continue recursively populating from friends list
         friends = self._query_steam(
-            self.users.get_user_friends_list,
-            steam_id=user_id,
-            enriched=True,
+            self.users.get_user_friends_list, steam_id=user_id, enriched=True,
         )
         if "friends" not in friends:
             print(f"Could not find friends for user={user_id}")

@@ -19,10 +19,7 @@ class Neo4jClient(object):
     def from_env(cls) -> Neo4jClient:
         return cls(
             uri=utils.get_env_var("NEO4J_URI"),
-            auth=(
-                utils.get_env_var("NEO4J_USER"),
-                utils.get_env_var("NEO4J_PW"),
-            ),
+            auth=(utils.get_env_var("NEO4J_USER"), utils.get_env_var("NEO4J_PW"),),
         )
 
     def _write(self, unit_of_work: Callable, **kwargs) -> Any:
