@@ -11,7 +11,9 @@ class SteamClient(Steam):
     """`Steam` class implemented as it applies to Vapor"""
 
     def __init__(
-        self, steam_api_key: str, steam_id: str,
+        self,
+        steam_api_key: str,
+        steam_id: str,
     ):
         super().__init__(steam_api_key)
         self.steam_id = steam_id
@@ -71,32 +73,44 @@ class SteamClient(Steam):
         return self.get_user_details(self.steam_id, fields)
 
     def get_user_owned_games(
-        self, user_id: str, fields: list[str] = ["appid"]
+        self,
+        user_id: str,
+        fields: list[str] = ["appid"],
+        limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
         """Get owned games for `user_id` with details specified by `fields`"""
-        games = self._query_steam(self.users.get_owned_games, steam_id=user_id)
-        if "games" not in games:
-            print(f"Could not find owned games for user={user_id}")
-            games["games"] = []
-
-        for game in games["games"]:
+        games_response = self._query_steam(self.users.get_owned_games, steam_id=user_id)
+        if "games" not in games_response:
+            games_list = []
+        else:
+            games_list = games_response["games"]
+        if limit is not None:
+            games_list = games_list[:limit]
+        for game in games_list:
             game_details = {}
             if "appid" not in game:
                 continue
             yield self._extract_fields(game_details, fields)
 
     def get_user_friends(
-        self, user_id: str, fields: list[str] = ["steam_id"]
-    ) -> list[dict[str, Any]]:
+        self,
+        user_id: str,
+        fields: list[str] = ["steam_id"],
+        limit: int | None = None,
+    ) -> Generator[dict[str, Any], None, None]:
         """Get friends list for `user_id` with details specifid by `fields`"""
         # Continue recursively populating from friends list
-        friends = self._query_steam(
-            self.users.get_user_friends_list, steam_id=user_id, enriched=True,
+        friends_response = self._query_steam(
+            self.users.get_user_friends_list,
+            steam_id=user_id,
+            enriched=True,
         )
-        if "friends" not in friends:
+        if "friends" not in friends_response:
             print(f"Could not find friends for user={user_id}")
-            friends["friends"] = []
-        detailed_friends_list = [
-            self._extract_fields(friend, fields) for friend in friends["friends"]
-        ]
-        return detailed_friends_list
+            friends_list = []
+        else:
+            friends_list = friends_response["friends"]
+        if limit is not None:
+            friends_list = friends_list[:limit]
+        for friend in friends_list:
+            yield self._extract_fields(friend, fields)
