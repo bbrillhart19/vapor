@@ -50,7 +50,7 @@ class SteamClient(Steam):
                 print(f"Caught an unhandled query exception:\n{e}")
 
         return response
-    
+
     @staticmethod
     def _extract_fields(response_data: dict, fields: list[str]) -> dict[str, Any]:
         return {field: response_data.get(field) for field in fields}
@@ -67,8 +67,7 @@ class SteamClient(Steam):
         return self._extract_fields(user_details, fields)
 
     def get_primary_user_details(
-        self,
-        fields: list[str] = ["steam_id"]
+        self, fields: list[str] = ["steam_id"]
     ) -> dict[str, Any]:
         """Query for the primary user the steam client is based on"""
         return self.get_user_details(self.steam_id, fields)
