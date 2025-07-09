@@ -1,18 +1,5 @@
 ### Compose structure to coordinate Vapor and its dependencies ###
 services:
-  # The vapor python package
-  vapor:
-    build:
-      context: .
-      dockerfile: ./dockerfiles/vapor.dockerfile
-    image: vapor:latest
-    env_file: ./.env
-    volumes:
-      - ./vapor:/vapor/vapor
-      - ${VAPOR_DATA_PATH}/vapor:/vapor/data
-    profiles:
-      - vapor
-
   # Neo4j GraphDB 
   neo4j:
     image: neo4j:2025.05.0
