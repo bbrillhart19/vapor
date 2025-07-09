@@ -14,6 +14,7 @@ setup(
         "neo4j-driver",
         "html2text",
         "rich",
+        "dotenv",
     ],
     extras_require={
         "dev": [

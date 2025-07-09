@@ -1,12 +1,7 @@
 import os
 from pathlib import Path
 import shutil
-
-
-def get_env_var(env_key: str, non_env_val: str | None = None) -> str:
-    if not non_env_val:
-        return os.environ[env_key]
-    return non_env_val
+from dotenv import load_dotenv
 
 
 def cast_path(pth: Path | str) -> Path:
@@ -23,5 +18,18 @@ def create_dir(pth: Path | str, clear_contents: bool = False) -> Path:
     return pth
 
 
-def default_nx_graph_file() -> Path:
-    return cast_path(get_env_var("VAPOR_DATA_PATH")).joinpath("nxsteamgraph.gml.gz")
+def load_env(env_file: Path | str | None = "./.env") -> None:
+    if env_file:
+        if cast_path(env_file).exists():
+            print(f"Loading environment from file={env_file}")
+            load_dotenv(env_file, override=True)
+        else:
+            raise FileNotFoundError(f"Could not load environment from file={env_file}")
+    else:
+        print("No environment file provided, environment loaded from system.")
+
+
+def get_env_var(env_key: str, non_env_val: str | None = None) -> str:
+    if not non_env_val:
+        return os.environ[env_key]
+    return non_env_val

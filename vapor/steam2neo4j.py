@@ -1,4 +1,5 @@
 from vapor import clients
+from vapor.utils import utils
 
 
 def populate_from_friends(
@@ -63,7 +64,7 @@ def populate_from_friends(
     # Get friends list, add to db and recurse for each (decrement hops)
     friends = list(
         steam_client.get_user_friends(
-            steam_client, ["steam_id", "personaname"], limit=friend_limit
+            steam_client.steam_id, ["steam_id", "personaname"], limit=friend_limit
         )
     )
     neo4j_client.add_friends(steam_id, friends)
@@ -80,6 +81,7 @@ def populate_from_friends(
 
 def main(**kwargs) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
+    utils.load_dotenv()
     steam_client = clients.SteamClient.from_env()
     neo4j_client = clients.Neo4jClient.from_env()
     return populate_from_friends(steam_client, neo4j_client, steam_id=None, **kwargs)
