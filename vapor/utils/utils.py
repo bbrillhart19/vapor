@@ -21,8 +21,8 @@ def create_dir(pth: Path | str, clear_contents: bool = False) -> Path:
 def load_env(env_file: Path | str | None = "./.env") -> None:
     if env_file:
         if cast_path(env_file).exists():
-            print(f"Loading environment from file={env_file}")
             load_dotenv(env_file, override=True)
+            print(f"Loaded environment from file={env_file}")
         else:
             raise FileNotFoundError(f"Could not load environment from file={env_file}")
     else:

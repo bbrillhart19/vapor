@@ -13,16 +13,16 @@ class SteamClient(Steam):
     def __init__(
         self,
         steam_api_key: str,
-        steam_id: str,
+        steamid: str,
     ):
         super().__init__(steam_api_key)
-        self.steam_id = steam_id
+        self.steamid = steamid
 
     @classmethod
     def from_env(cls) -> SteamClient:
         return cls(
             steam_api_key=utils.get_env_var("STEAM_API_KEY"),
-            steam_id=utils.get_env_var("STEAM_ID"),
+            steamid=utils.get_env_var("STEAM_ID"),
         )
 
     def _query_steam(
@@ -56,30 +56,30 @@ class SteamClient(Steam):
         return {field: response_data.get(field) for field in fields}
 
     def get_user_details(
-        self, user_id: str, fields: list[str] = ["steam_id"]
+        self, steamid: str, fields: list[str] = ["steamid"]
     ) -> dict[str, Any]:
         """Query by user id to get details according to `fields`"""
-        response = self._query_steam(self.users.get_user_details, steam_id=user_id)
+        response = self._query_steam(self.users.get_user_details, steam_id=steamid)
         if not "player" in response:
-            print(f"Could not get user details for {user_id}")
+            print(f"Could not get user details for {steamid}")
             return {}
         user_details = response["player"]
         return self._extract_fields(user_details, fields)
 
     def get_primary_user_details(
-        self, fields: list[str] = ["steam_id"]
+        self, fields: list[str] = ["steamid"]
     ) -> dict[str, Any]:
         """Query for the primary user the steam client is based on"""
-        return self.get_user_details(self.steam_id, fields)
+        return self.get_user_details(self.steamid, fields)
 
     def get_user_owned_games(
         self,
-        user_id: str,
+        steamid: str,
         fields: list[str] = ["appid"],
         limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
-        """Get owned games for `user_id` with details specified by `fields`"""
-        games_response = self._query_steam(self.users.get_owned_games, steam_id=user_id)
+        """Get owned games for `steamid` with details specified by `fields`"""
+        games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
         if "games" not in games_response:
             games_list = []
         else:
@@ -87,26 +87,25 @@ class SteamClient(Steam):
         if limit is not None:
             games_list = games_list[:limit]
         for game in games_list:
-            game_details = {}
             if "appid" not in game:
                 continue
-            yield self._extract_fields(game_details, fields)
+            yield self._extract_fields(game, fields)
 
     def get_user_friends(
         self,
-        user_id: str,
-        fields: list[str] = ["steam_id"],
+        steamid: str,
+        fields: list[str] = ["steamid"],
         limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
-        """Get friends list for `user_id` with details specifid by `fields`"""
+        """Get friends list for `steamid` with details specifid by `fields`"""
         # Continue recursively populating from friends list
         friends_response = self._query_steam(
             self.users.get_user_friends_list,
-            steam_id=user_id,
+            steam_id=steamid,
             enriched=True,
         )
         if "friends" not in friends_response:
-            print(f"Could not find friends for user={user_id}")
+            print(f"Could not find friends for user={steamid}")
             friends_list = []
         else:
             friends_list = friends_response["friends"]

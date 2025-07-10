@@ -15,6 +15,7 @@ setup(
         "html2text",
         "rich",
         "dotenv",
+        "pandas",
     ],
     extras_require={
         "dev": [
