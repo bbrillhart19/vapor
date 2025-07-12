@@ -1,18 +1,18 @@
+from pathlib import Path
+
 from vapor import clients
 from vapor.utils import utils
 
 
-def populate_from_friends(
+def populate_friends(
     steam_client: clients.SteamClient,
     neo4j_client: clients.Neo4jClient,
     steamid: str | None = None,
     hops: int = 2,
-    friend_limit: int | None = None,
-    game_limit: int | None = None,
+    limit: int | None = None,
 ) -> None:
     """Populate the neo4j database for the primary user
-    by recursively discovering friends and their owned games
-    until `hops` is reached.
+    by recursively discovering friends until `hops` is reached.
 
     Args:
         steam_client (SteamClient): The `SteamClient` instance to query
@@ -27,11 +27,8 @@ def populate_from_friends(
         hops (optional, int): The number of hops, i.e. recursive calls
             to `populate_from_friends`, outward from the primary user
             before ceasing execution. Defaults to 2.
-        friend_limit (optional, int): Limit the amount of friends to include
+        limit (optional, int): Limit the amount of friends to include
             per friends list query. If None, all friends will be included.
-            Defaults to None.
-        game_limit (optional, int): Limit the amount of games to include
-            per games list query. If None, all games will be included.
             Defaults to None.
     """
 
@@ -39,68 +36,89 @@ def populate_from_friends(
         return
 
     if not steamid:
-        # Get primary user and add to db
-        primary_user = steam_client.get_primary_user_details(["steamid", "personaname"])
-        print(f"Setting primary user: {primary_user}")
+        # Get primary user steam id from neo4j
+        primary_user = neo4j_client.get_primary_user()
 
-        neo4j_client.add_user(**primary_user)
-        neo4j_client.set_primary_user(primary_user["steamid"])
         # Recurse using primary user id
-        return populate_from_friends(
+        return populate_friends(
             steam_client,
             neo4j_client,
             primary_user["steamid"],
             hops,
-            friend_limit,
-            game_limit,
+            limit,
         )
 
     print(f"Populating from user={steamid}")
 
-    # Get games for this user and add to db
-    games = list(
-        steam_client.get_user_owned_games(steamid, ["appid", "name"], limit=game_limit)
-    )
-    neo4j_client.add_owned_games(steamid, games)
-    # # Add genres for all games
-    # neo4j_client.add_genres(games)
-
     # Get friends list, add to db and recurse for each (decrement hops)
     friends = list(
-        steam_client.get_user_friends(
-            steamid, ["steamid", "personaname"], limit=friend_limit
-        )
+        steam_client.get_user_friends(steamid, ["steamid", "personaname"], limit=limit)
     )
     # Avoid adding friend relationships past the allowed hops
     if hops > 0:
         neo4j_client.add_friends(steamid, friends)
 
     for friend in friends:
-        populate_from_friends(
+        populate_friends(
             steam_client,
             neo4j_client,
             friend["steamid"],
             hops - 1,
-            friend_limit,
-            game_limit,
+            limit,
         )
 
 
-def main(**kwargs) -> None:
+def steam2neo4j(
+    hops: int = 2,
+    init: bool = False,
+    delete: bool = False,
+    friends: bool = False,
+    games: bool = False,
+    genres: bool = False,
+    limit: int | None = None,
+    env_file: Path | str | None = "./.env",
+) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
-    utils.load_dotenv()
+    utils.load_dotenv(env_file)
     steam_client = clients.SteamClient.from_env()
     neo4j_client = clients.Neo4jClient.from_env()
-    neo4j_client.set_user_constraint()
-    neo4j_client.set_game_constraint()
-    return populate_from_friends(steam_client, neo4j_client, steamid=None, **kwargs)
+
+    # Setup neo4j with primary user
+    if init:
+        primary_user = steam_client.get_primary_user_details(["steamid", "personaname"])
+        neo4j_client.setup_from_primary_user(**primary_user)
+
+    # Delete everything and return
+    if delete:
+        neo4j_client.detach_delete()
+        return
+
+    # Check for setup before proceeding with anything else
+    assert neo4j_client.is_setup, (
+        f"Neo4j is not setup properly and thus cannot be populated. "
+        + "Make sure you run `steam2neo4j` with `init` enabled."
+    )
+
+    # Populate friends spanning from primary user
+    if friends:
+        populate_friends(
+            steam_client, neo4j_client, steamid=None, hops=hops, limit=limit
+        )
+
+    # Populate games via all users (primary and friends)
+    if games:
+        raise NotImplementedError
+
+    # Populate genres via all games
+    if genres:
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Populate neo4j database with steam data for Vapor"
+        description="Set up and populate neo4j database with steam data for Vapor"
     )
     parser.add_argument(
         "-n",
@@ -110,20 +128,57 @@ if __name__ == "__main__":
         default=2,
     )
     parser.add_argument(
-        "-F",
-        "--friend-limit",
-        type=int,
-        help="Number of friends to limit each friends list query to."
-        + " If None, all friends will be included. Defaults to None.",
-        default=None,
+        "-i",
+        "--init",
+        action="store_true",
+        help="Initialize the neo4j database with necessary constraints"
+        + " and set up the primary user. Disabled by default.",
+    )
+    parser.add_argument(
+        "-D",
+        "--delete",
+        action="store_true",
+        help="WARNING: This will delete all nodes and relationships in the graph."
+        + " Disabled by default.",
+    )
+    parser.add_argument(
+        "-f",
+        "--friends",
+        action="store_true",
+        help="Populate friends starting from primary spanning out `n_hops`."
+        + " Requires prior initialized neo4j database. Disabled by default.",
+    )
+    parser.add_argument(
+        "-g",
+        "--games",
+        action="store_true",
+        help="Populate games via users starting from primary spanning out `n_hops`."
+        + " Requires prior initialized neo4j database with friends."
+        + " Disabled by default.",
     )
     parser.add_argument(
         "-G",
-        "--game-limit",
+        "--genres",
+        action="store_true",
+        help="Populate all game genres for all games present in the database."
+        + " Requires prior initialized neo4j database with games."
+        + " Disabled by default.",
+    )
+    parser.add_argument(
+        "-l",
+        "--limit",
         type=int,
-        help="Number of games to limit each games list query to."
-        + " If None, all games will be included. Defaults to None.",
+        help="Limits all populating queries (friends, games, etc.) to this value."
+        + " If None, all discovered datums will be included. Defaults to None.",
         default=None,
     )
+    parser.add_argument(
+        "-e",
+        "--env-file",
+        type=Path,
+        help="The environment file to load from. Defaults to ./.env",
+        default="./.env",
+    )
+
     args = parser.parse_args()
-    main(**args.__dict__)
+    steam2neo4j(**args.__dict__)
