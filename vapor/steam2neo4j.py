@@ -122,7 +122,7 @@ def populate_genres(
     """
     games_df = neo4j_client.get_all_games()
     total_games = len(games_df)
-    print(f"Found {total_games} total games to populate games from.")
+    print(f"Found {total_games} total games to populate genres from.")
 
     # Iterate through each game, retrieve details and add genres
     for game in track(
@@ -130,11 +130,8 @@ def populate_genres(
         description="Populating genres:",
         total=total_games,
     ):
-        game_details = steam_client.get_game_details(
-            game.appid, filters=["genres", "categories"]
-        )
-        print(game_details)
-        break
+        game_details = steam_client.get_game_details(game.appid, filters=["genres"])
+        neo4j_client.add_game_genres(game.appid, game_details["genres"])
 
 
 def steam2neo4j(

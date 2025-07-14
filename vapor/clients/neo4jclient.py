@@ -56,17 +56,24 @@ class Neo4jClient(object):
             **kwargs,
         )
 
-    def _set_user_constraint(self) -> None:
+    def _set_node_constraint(
+        self, constraint_name: str, node_label: str, node_property: str
+    ) -> None:
         cypher = """
-            CREATE CONSTRAINT user_constraint IF NOT EXISTS FOR (u:User) REQUIRE (u.steamId) IS UNIQUE
-        """
+            CREATE CONSTRAINT {0} IF NOT EXISTS FOR (n:{1}) REQUIRE (n.{2}) IS UNIQUE
+        """.format(
+            constraint_name, node_label, node_property
+        )
         self._write(cypher)
 
+    def _set_user_constraint(self) -> None:
+        self._set_node_constraint("user_constraint", "User", "steamId")
+
     def _set_game_constraint(self) -> None:
-        cypher = """
-            CREATE CONSTRAINT game_constraint IF NOT EXISTS FOR (g:Game) REQUIRE (g.appId) IS UNIQUE
-        """
-        self._write(cypher)
+        self._set_node_constraint("game_constraint", "Game", "appId")
+
+    def _set_genre_constraint(self) -> None:
+        self._set_node_constraint("genre_constraint", "Genre", "genreId")
 
     def _get_constraints(self) -> pd.DataFrame:
         cypher = """SHOW CONSTRAINTS"""
@@ -118,9 +125,13 @@ class Neo4jClient(object):
             return False
 
         # Check constraints
-        valid_constraints = {x + "_constraint" for x in ["game", "user"]}
+        required_constraints = {
+            "game_constraint",
+            "user_constraint",
+            "genre_constraint",
+        }
         constraints = set(self._get_constraints()["name"])
-        missing_constraints = valid_constraints - constraints
+        missing_constraints = required_constraints - constraints
         if missing_constraints:
             print(f"Missing constraints: {missing_constraints}")
             return False
@@ -140,6 +151,7 @@ class Neo4jClient(object):
         print("Setting necessary constraints...")
         self._set_user_constraint()
         self._set_game_constraint()
+        self._set_genre_constraint()
 
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
@@ -239,7 +251,22 @@ class Neo4jClient(object):
         return self._read(cypher)
 
     def add_game_genres(self, appid: int, genres: list[dict[str, Any]]) -> None:
-        pass
+        """Add the list of `genres` as `Genre` nodes for the game
+        matching the provided `appid`.
+
+        Args:
+            appid (int): The Steam app id number of the game
+                to add the `genres` relationships to.
+            genres (list[dict[str, Any]]): The genres the game
+                is a member of, including properties of
+        """
+        cypher = """
+            MATCH (g:Game {appId: $appid})
+            UNWIND $genres as genre
+            MERGE (n:Genre {genreId: toInteger(genre.id), description: genre.description})
+            MERGE (g)-[:HAS_GENRE]->(n)
+        """
+        return self._write(cypher, appid=appid, genres=genres)
 
     def detach_delete(self) -> None:
         """WARNING: Removes all nodes and relationships from the graph!"""
@@ -253,29 +280,3 @@ class Neo4jClient(object):
             category=UserWarning,
         )
         self._write(cypher)
-
-    # @staticmethod
-    # def _add_genres_tx(tx: ManagedTransaction, games: list[dict[str, Any]]) -> None:
-    #     """Unit of work for `add_genres` method"""
-    #     cypher = """
-    #         UNWIND $games AS game
-    #         UNWIND game.genres AS genre
-    #         MATCH (g:Game {appId: game.appid})
-    #         MERGE (g)-[:HAS_GENRE]->(n:Genre {name: genre.name})
-    #         WITH DISTINCT n.name AS genre_names
-    #         RETURN collect(genre_names) AS genres
-    #     """
-
-    #     record = tx.run(cypher, games=games).single()
-    #     if games and not record["genres"]:
-    #         raise NotFoundException(f"Did not record any game genres")
-
-    # def add_genres(self, games: list[dict[str, Any]]) -> None:
-    #     """Create `Genre` nodes via relationships to the `games`
-    #     which have those genre properties.
-
-    #     Args:
-    #         games (list[dict[str, Any]]): The list of games to add
-    #             relationships for their genres.
-    #     """
-    #     self._write(self._add_genres_tx, games=games)
