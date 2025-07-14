@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from rich.progress import track
+
 from vapor import clients
 from vapor.utils import utils
 
@@ -48,7 +50,7 @@ def populate_friends(
             limit,
         )
 
-    print(f"Populating from user={steamid}")
+    print(f"Populating friends from user={steamid}")
 
     # Get friends list, add to db and recurse for each (decrement hops)
     friends = list(
@@ -66,6 +68,73 @@ def populate_friends(
             hops - 1,
             limit,
         )
+
+
+def populate_games(
+    steam_client: clients.SteamClient,
+    neo4j_client: clients.Neo4jClient,
+    limit: int | None = None,
+) -> None:
+    """Populate the neo4j database with games from the games list
+    for each user present in the database.
+
+    TODO: Plays, wishlisted relationships
+
+    Args:
+        steam_client (SteamClient): The `SteamClient` instance to query
+            the SteamWebAPI.
+        neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
+            the Neo4j GraphDB.
+        limit (optional, int): Limit the amount of games to include
+            per user query. If None, all games will be included.
+            Defaults to None.
+    """
+    # Get all users from the database
+    users_df = neo4j_client.get_all_users()
+    total_users = len(users_df)
+    print(f"Found {total_users} total users to populate games from.")
+    # Iterate through each and add owned games (wishlists, etc. TODO)
+    for user in track(
+        users_df.itertuples(),
+        description="Populating games:",
+        total=total_users,
+    ):
+        games = list(
+            steam_client.get_user_owned_games(
+                user.steamid, ["appid", "name"], limit=limit
+            )
+        )
+        neo4j_client.add_owned_games(user.steamid, games)
+
+
+def populate_genres(
+    steam_client: clients.SteamClient,
+    neo4j_client: clients.Neo4jClient,
+) -> None:
+    """Populate the neo4j database with genres for all games
+    in the database.
+
+        Args:
+        steam_client (SteamClient): The `SteamClient` instance to query
+            the SteamWebAPI.
+        neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
+            the Neo4j GraphDB.
+    """
+    games_df = neo4j_client.get_all_games()
+    total_games = len(games_df)
+    print(f"Found {total_games} total games to populate games from.")
+
+    # Iterate through each game, retrieve details and add genres
+    for game in track(
+        games_df.itertuples(),
+        description="Populating genres:",
+        total=total_games,
+    ):
+        game_details = steam_client.get_game_details(
+            game.appid, filters=["genres", "categories"]
+        )
+        print(game_details)
+        break
 
 
 def steam2neo4j(
@@ -107,11 +176,11 @@ def steam2neo4j(
 
     # Populate games via all users (primary and friends)
     if games:
-        raise NotImplementedError
+        populate_games(steam_client, neo4j_client, limit=limit)
 
     # Populate genres via all games
     if genres:
-        raise NotImplementedError
+        populate_genres(steam_client, neo4j_client)
 
 
 if __name__ == "__main__":

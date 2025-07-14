@@ -72,25 +72,6 @@ class SteamClient(Steam):
         """Query for the primary user the steam client is based on"""
         return self.get_user_details(self.steamid, fields)
 
-    def get_user_owned_games(
-        self,
-        steamid: str,
-        fields: list[str] = ["appid"],
-        limit: int | None = None,
-    ) -> Generator[dict[str, Any], None, None]:
-        """Get owned games for `steamid` with details specified by `fields`"""
-        games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
-        if "games" not in games_response:
-            games_list = []
-        else:
-            games_list = games_response["games"]
-        if limit is not None:
-            games_list = games_list[:limit]
-        for game in games_list:
-            if "appid" not in game:
-                continue
-            yield self._extract_fields(game, fields)
-
     def get_user_friends(
         self,
         steamid: str,
@@ -113,3 +94,37 @@ class SteamClient(Steam):
             friends_list = friends_list[:limit]
         for friend in friends_list:
             yield self._extract_fields(friend, fields)
+
+    def get_user_owned_games(
+        self,
+        steamid: str,
+        fields: list[str] = ["appid"],
+        limit: int | None = None,
+    ) -> Generator[dict[str, Any], None, None]:
+        """Get owned games for `steamid` with details specified by `fields`"""
+        games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
+        if "games" not in games_response:
+            games_list = []
+        else:
+            games_list = games_response["games"]
+        if limit is not None:
+            games_list = games_list[:limit]
+        for game in games_list:
+            if "appid" not in game:
+                continue
+            yield self._extract_fields(game, fields)
+
+    def get_game_details(
+        self, appid: int, filters: list[str] = ["basic"]
+    ) -> dict[str, Any]:
+        """Get the genres of a game specified by `appid` and retrieve"""
+        response = self._query_steam(
+            self.apps.get_app_details, app_id=int(appid), filters=",".join(filters)
+        )
+        try:
+            app_details = response[str(appid)]["data"]
+        except KeyError:
+            print(f"Could not retrieve details for appid={appid}")
+            return {}
+
+        return app_details

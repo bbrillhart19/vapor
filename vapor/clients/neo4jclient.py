@@ -91,6 +91,9 @@ class Neo4jClient(object):
     def get_primary_user(self) -> dict[str, Any]:
         """Get the primary user info, i.e. central node, from the database.
 
+        Returns:
+            dict[str, Any]: The primary user info from the primary node.
+
         Raises:
             `NotFoundException` if the primary user node cannot be found.
         """
@@ -172,6 +175,44 @@ class Neo4jClient(object):
         """
         self._write(cypher, steamid=steamid, friends=friends)
 
+    def get_all_users(self) -> pd.DataFrame:
+        """Retrieve all `User` nodes from the database.
+
+        Returns:
+            pd.DataFrame: All `User` nodes from database and their
+                node properties as a `DataFrame` object.
+        """
+        cypher = """
+            MATCH (u:User)
+            RETURN u.steamId as steamid, u.personaName as personaname
+        """
+        return self._read(cypher)
+
+    def _add_games(
+        self, steamid: str, games: list[dict[str, Any]], relationship: str
+    ) -> None:
+        """Add the list of `games` as `Game` nodes which are owned by
+        the `User` node matching `steamid`.
+
+        Args:
+            steamid (str): The Steam user ID of the user to add `games`
+                relationships to.
+            games (list[dict[str, Any]]): The list of games each with
+                parameters of `appid` and `name`.
+            relationship (str): The relationship identifier b/w the user and
+                all `games`, e.g. `"OWNS_GAME"`.
+        """
+        cypher = """
+            MATCH (u:User {{steamId: $steamid}})
+            UNWIND $games AS game
+            MERGE (g:Game {{appId: game.appid, name: game.name}})
+            MERGE (u)-[:{0}]->(g)
+        """.format(
+            relationship
+        )
+
+        self._write(cypher, steamid=steamid, games=games)
+
     def add_owned_games(self, steamid: str, games: list[dict[str, Any]]) -> None:
         """Add the list of `games` as `Game` nodes which are owned by
         the `User` node matching `steamid`.
@@ -182,13 +223,23 @@ class Neo4jClient(object):
             games (list[dict[str, Any]]): The list of games each with
                 parameters of `appid` and `name`.
         """
-        cypher = """
-            MATCH (u:User {steamId: $steamid})
-            UNWIND $games AS game
-            MERGE (g:Game {appId: game.appid, name: game.name})
-            MERGE (u)-[:OWNS]->(g)
+        self._add_games(steamid, games, "OWNS_GAME")
+
+    def get_all_games(self) -> pd.DataFrame:
+        """Retrieve all `Game` nodes from the database.
+
+        Returns:
+            pd.DataFrame: All `Game` nodes from database and their
+                node properties as a `DataFrame` object.
         """
-        self._write(cypher, steamid=steamid, games=games)
+        cypher = """
+            MATCH (g:Game)
+            RETURN g.appId as appid, g.name as name
+        """
+        return self._read(cypher)
+
+    def add_game_genres(self, appid: int, genres: list[dict[str, Any]]) -> None:
+        pass
 
     def detach_delete(self) -> None:
         """WARNING: Removes all nodes and relationships from the graph!"""
