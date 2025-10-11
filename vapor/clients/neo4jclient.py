@@ -44,10 +44,13 @@ class Neo4jClient(object):
             cypher, database_=self._database, routing_=RoutingControl.WRITE, **kwargs
         )
 
-    def _read(self, cypher: str, **kwargs) -> pd.DataFrame:
+    def _read(self, cypher: str, limit: int | None = None, **kwargs) -> pd.DataFrame:
         """Run the `cypher` query in 'read' mode, always transforming
-        and returning the results as a dataframe
+        and returning the results as a dataframe. If `limit` is supplied,
+        only that amount of items will be returned.
         """
+        if limit:
+            cypher += f" LIMIT {limit}"
         return self.driver.execute_query(
             cypher,
             database_=self._database,
@@ -187,8 +190,13 @@ class Neo4jClient(object):
         """
         self._write(cypher, steamid=steamid, friends=friends)
 
-    def get_all_users(self) -> pd.DataFrame:
+    def get_all_users(self, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all `User` nodes from the database.
+
+        Args:
+            limit (int, optional): Limits the amount of users returned.
+                If None, all users in the graph are returned.
+                Defaults to None.
 
         Returns:
             pd.DataFrame: All `User` nodes from database and their
@@ -198,7 +206,7 @@ class Neo4jClient(object):
             MATCH (u:User)
             RETURN u.steamId as steamid, u.personaName as personaname
         """
-        return self._read(cypher)
+        return self._read(cypher, limit)
 
     def _add_games(
         self, steamid: str, games: list[dict[str, Any]], relationship: str
@@ -237,8 +245,13 @@ class Neo4jClient(object):
         """
         self._add_games(steamid, games, "OWNS_GAME")
 
-    def get_all_games(self) -> pd.DataFrame:
+    def get_all_games(self, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all `Game` nodes from the database.
+
+        Args:
+            limit (int, optional): Limits the amount of users returned.
+                If None, all users in the graph are returned.
+                Defaults to None.
 
         Returns:
             pd.DataFrame: All `Game` nodes from database and their
@@ -248,7 +261,7 @@ class Neo4jClient(object):
             MATCH (g:Game)
             RETURN g.appId as appid, g.name as name
         """
-        return self._read(cypher)
+        return self._read(cypher, limit)
 
     def add_game_genres(self, appid: int, genres: list[dict[str, Any]]) -> None:
         """Add the list of `genres` as `Genre` nodes for the game

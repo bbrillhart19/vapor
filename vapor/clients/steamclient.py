@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Any, Generator
 import time
+import warnings
 
 from steam_web_api import Steam
 
@@ -49,6 +50,9 @@ class SteamClient(Steam):
             else:
                 print(f"Caught an unhandled query exception:\n{e}")
 
+        if response is None:
+            response = {}
+
         return response
 
     @staticmethod
@@ -61,7 +65,7 @@ class SteamClient(Steam):
         """Query by user id to get details according to `fields`"""
         response = self._query_steam(self.users.get_user_details, steam_id=steamid)
         if not "player" in response:
-            print(f"Could not get user details for {steamid}")
+            warnings.warn(f"Could not get user details for {steamid}")
             return {}
         user_details = response["player"]
         return self._extract_fields(user_details, fields)
@@ -86,7 +90,7 @@ class SteamClient(Steam):
             enriched=True,
         )
         if "friends" not in friends_response:
-            print(f"Could not find friends for user={steamid}")
+            warnings.warn(f"Could not find friends for user={steamid}")
             friends_list = []
         else:
             friends_list = friends_response["friends"]
@@ -124,7 +128,7 @@ class SteamClient(Steam):
         try:
             app_details = response[str(appid)]["data"]
         except KeyError:
-            print(f"Could not retrieve details for appid={appid}")
+            warnings.warn(f"Could not retrieve details for appid={appid}")
             return {}
 
         return app_details
