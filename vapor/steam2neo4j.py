@@ -142,10 +142,8 @@ def steam2neo4j(
     games: bool = False,
     genres: bool = False,
     limit: int | None = None,
-    env_file: Path | str | None = "./.env",
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
-    utils.load_dotenv(env_file)
     steam_client = clients.SteamClient.from_env()
     neo4j_client = clients.Neo4jClient.from_env()
 
@@ -237,13 +235,6 @@ if __name__ == "__main__":
         help="Limits all populating queries (friends, games, etc.) to this value."
         + " If None, all discovered datums will be included. Defaults to None.",
         default=None,
-    )
-    parser.add_argument(
-        "-e",
-        "--env-file",
-        type=Path,
-        help="The environment file to load from. Defaults to ./.env",
-        default="./.env",
     )
 
     args = parser.parse_args()

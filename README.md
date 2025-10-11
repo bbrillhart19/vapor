@@ -24,6 +24,11 @@ cp .env.example .env
 ```
 And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire a Steam Web API Key [here](https://steamcommunity.com/dev).
 
+**NOTE:** You can set a custom path to environment if you wish with:
+```shell
+export VAPOR_ENV=path/to/your.env
+```
+
 ### Docker Installation
 This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
 
@@ -72,7 +77,6 @@ pip install -e .[dev]
 - [ ] Ensure [environment](#installation) is setup and activated
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] TODO: Locally, ensure passing [unit tests](#unit-tests)
-- [ ] TODO: Additionally run necessary [integration tests](#integration-tests)
 - [ ] TODO: CI/CD with Actions
 
 #### Code Formatting
@@ -84,5 +88,3 @@ black vapor
 #### Unit Tests
 TODO - `pytest`
 
-#### Integration Tests
-TODO - Locally run with Docker 
