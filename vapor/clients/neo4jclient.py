@@ -226,6 +226,22 @@ class Neo4jClient(object):
         """
         self._write(cypher, steamid=steamid, games=games)
 
+    def get_owned_games(self, steamid: str, limit: int | None = None) -> pd.DataFrame:
+        """Retrieve all owned games up to `limit` for the User node matching `steamid`
+
+        Args:
+            steamid (str): The Steam user ID of the user to get owned games for.
+
+        Returns:
+            pd.DataFrame: All `Game` nodes owned by the user.
+        """
+        cypher = """
+            MATCH (u: {steamId: $steamid})
+            MATCH (u)-[:OWNS_GAME]->(g:Game)
+            RETURN g.appId as appid, g.name as name
+        """
+        return self._read(cypher, limit, steamid=steamid)
+
     def get_all_games(self, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all `Game` nodes from the database.
 
@@ -260,9 +276,8 @@ class Neo4jClient(object):
             MERGE (n:Genre {genreId: toInteger(genre.id), description: genre.description})
             MERGE (g)-[:HAS_GENRE]->(n)
         """
-        return self._write(cypher, appid=appid, genres=genres)
+        self._write(cypher, appid=appid, genres=genres)
 
-    # TODO: finish this
     def update_recently_played_games(
         self, steamid: str, games: list[dict[str, Any]]
     ) -> None:
@@ -271,8 +286,29 @@ class Neo4jClient(object):
         each of the `Game` nodes. Any games that are no longer members
         of the recently played list will have that relationship removed
         from the user.
+
+        Args:
+            steamid (str): The Steam user ID of the user to add `games`
+                with `RECENTLY_PLAYED` relationship to.
+            games (list[dict[str, Any]]): The list of games each with
+                at least the parameter of `appid`.
         """
-        pass
+        # First query removes all recently played relationships
+        delete_cypher = """
+            MATCH (u:User {steamId: $steamid})
+            MATCH (u)-[r:RECENTLY_PLAYED]->()            
+            DELETE r
+        """
+        self._write(delete_cypher, steamid=steamid)
+
+        # Second query adds recently played relationships from the updated list
+        update_cypher = """
+            MATCH (u:User {steamId: $steamid})
+            UNWIND $games as game 
+            MATCH (g:Game {appId: game.appid})  
+            MERGE (u)-[:RECENTLY_PLAYED]->(g)
+        """
+        return self._write(update_cypher, steamid=steamid, games=games)
 
     def detach_delete(self) -> None:
         """WARNING: Removes all nodes and relationships from the graph!"""

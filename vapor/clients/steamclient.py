@@ -99,14 +99,12 @@ class SteamClient(Steam):
         for friend in friends_list:
             yield self._extract_fields(friend, fields)
 
-    def get_user_owned_games(
+    def _parse_games_response(
         self,
-        steamid: str,
+        games_response: Any,
         fields: list[str] = ["appid"],
         limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
-        """Get owned games for `steamid` with details specified by `fields`"""
-        games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
         if "games" not in games_response:
             games_list = []
         else:
@@ -118,12 +116,28 @@ class SteamClient(Steam):
                 continue
             yield self._extract_fields(game, fields)
 
+    def get_user_owned_games(
+        self,
+        steamid: str,
+        fields: list[str] = ["appid"],
+        limit: int | None = None,
+    ) -> Generator[dict[str, Any], None, None]:
+        """Get owned games for `steamid` with details specified by `fields`."""
+        games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
+        return self._parse_games_response(games_response, fields=fields, limit=limit)
+
     # TODO - finish this
-    def get_user_recently_played_games(self, steamid: str):
+    def get_user_recently_played_games(self, steamid: str, limit: int | None = None):
+        """Get recently played games, the results of which should
+        already have their details defined by `get_user_owned_games`.
+
+        NOTE: The underlying query only returns `appid` and additional
+        fields are not an option.
+        """
         games_response = self._query_steam(
             self.users.get_user_recently_played_games, steam_id=steamid
         )
-        pass
+        return self._parse_games_response(games_response, limit=limit)
 
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]

@@ -93,7 +93,7 @@ def populate_games(
     users_df = neo4j_client.get_all_users()
     total_users = len(users_df)
     print(f"Found {total_users} total users to populate games from.")
-    # Iterate through each and add owned games (wishlists, etc. TODO)
+    # Iterate through each user and add their games
     for user in track(
         users_df.itertuples(),
         description="Populating games:",
@@ -105,9 +105,11 @@ def populate_games(
             )
         )
         neo4j_client.add_owned_games(user.steamid, owned_games)
-        # TODO: Move to its own method
-        recently_played_games = steam_client.get_user_recently_played_games(
-            user.steamid
+        recently_played_games = list(
+            steam_client.get_user_recently_played_games(user.steamid, limit=limit)
+        )
+        neo4j_client.update_recently_played_games(
+            steamid=user.steamid, games=recently_played_games
         )
 
 
