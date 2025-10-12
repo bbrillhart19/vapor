@@ -99,12 +99,16 @@ def populate_games(
         description="Populating games:",
         total=total_users,
     ):
-        games = list(
+        owned_games = list(
             steam_client.get_user_owned_games(
                 user.steamid, ["appid", "name"], limit=limit
             )
         )
-        neo4j_client.add_owned_games(user.steamid, games)
+        neo4j_client.add_owned_games(user.steamid, owned_games)
+        # TODO: Move to its own method
+        recently_played_games = steam_client.get_user_recently_played_games(
+            user.steamid
+        )
 
 
 def populate_genres(

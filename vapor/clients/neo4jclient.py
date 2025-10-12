@@ -208,31 +208,6 @@ class Neo4jClient(object):
         """
         return self._read(cypher, limit)
 
-    def _add_games(
-        self, steamid: str, games: list[dict[str, Any]], relationship: str
-    ) -> None:
-        """Add the list of `games` as `Game` nodes which are owned by
-        the `User` node matching `steamid`.
-
-        Args:
-            steamid (str): The Steam user ID of the user to add `games`
-                relationships to.
-            games (list[dict[str, Any]]): The list of games each with
-                parameters of `appid` and `name`.
-            relationship (str): The relationship identifier b/w the user and
-                all `games`, e.g. `"OWNS_GAME"`.
-        """
-        cypher = """
-            MATCH (u:User {{steamId: $steamid}})
-            UNWIND $games AS game
-            MERGE (g:Game {{appId: game.appid, name: game.name}})
-            MERGE (u)-[:{0}]->(g)
-        """.format(
-            relationship
-        )
-
-        self._write(cypher, steamid=steamid, games=games)
-
     def add_owned_games(self, steamid: str, games: list[dict[str, Any]]) -> None:
         """Add the list of `games` as `Game` nodes which are owned by
         the `User` node matching `steamid`.
@@ -243,7 +218,13 @@ class Neo4jClient(object):
             games (list[dict[str, Any]]): The list of games each with
                 parameters of `appid` and `name`.
         """
-        self._add_games(steamid, games, "OWNS_GAME")
+        cypher = """
+            MATCH (u:User {steamId: $steamid})
+            UNWIND $games AS game
+            MERGE (g:Game {appId: game.appid, name: game.name})
+            MERGE (u)-[:OWNS_GAME]->(g)
+        """
+        self._write(cypher, steamid=steamid, games=games)
 
     def get_all_games(self, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all `Game` nodes from the database.
@@ -280,6 +261,18 @@ class Neo4jClient(object):
             MERGE (g)-[:HAS_GENRE]->(n)
         """
         return self._write(cypher, appid=appid, genres=genres)
+
+    # TODO: finish this
+    def update_recently_played_games(
+        self, steamid: str, games: list[dict[str, Any]]
+    ) -> None:
+        """Update the recently played games for the user with `steamid`
+        by adding an additional relationship for the `User` node to
+        each of the `Game` nodes. Any games that are no longer members
+        of the recently played list will have that relationship removed
+        from the user.
+        """
+        pass
 
     def detach_delete(self) -> None:
         """WARNING: Removes all nodes and relationships from the graph!"""

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Any, Generator
+from typing import Callable, Any, Generator, Union
 import time
 import warnings
 
@@ -117,6 +117,13 @@ class SteamClient(Steam):
             if "appid" not in game:
                 continue
             yield self._extract_fields(game, fields)
+
+    # TODO - finish this
+    def get_user_recently_played_games(self, steamid: str):
+        games_response = self._query_steam(
+            self.users.get_user_recently_played_games, steam_id=steamid
+        )
+        pass
 
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]
