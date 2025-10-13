@@ -159,6 +159,51 @@ class Neo4jClient(object):
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
 
+    @staticmethod
+    def _validate_node_fields(
+        nodes: list[dict[str, Any]], defaults: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Validates a set of `nodes` to be inserted to the graph
+        and returns the validated set, skipping any nodes that are
+        missing required fields, which are indicated in the `defaults`
+        list as `"field": None`. If a field is optional and missing from
+        a `node`, it will use the value from the `defaults`. Only the
+        fields that are in the `defaults` mapping will be included in
+        the returned validated nodes.
+
+        Args:
+            nodes (list[dict[str, Any]]): The input node messages
+                to be validated.
+            defaults (dict[str, Any]): The default mapping of fields
+                and their values. Indicate required fields by setting
+                their values as `None`.
+
+        Returns:
+            list[dict[str, Any]]: _description_
+        """
+        validated_nodes: list[dict[str, Any]] = []
+        for node in nodes:
+            validated_node = {}
+            valid = True
+            for field, val in defaults.items():
+                # Expected field is missing from node
+                if field not in node or node[field] is None:
+                    # Required field missing, skip this node
+                    if val is None:
+                        valid = False
+                        break
+                    # Not a required field, set default
+                    # print(field, "is missing")
+                    validated_node[field] = val
+                    continue
+                # Expected field is in node with value, set it as is
+                validated_node[field] = node[field]
+            # Add to validated_nodes if validated
+            if valid:
+                validated_nodes.append(validated_node)
+        # print(validated_nodes)
+        return validated_nodes
+
     def add_user(self, steamid: str, personaname: str) -> None:
         """Add a `User` node with the provided properties.
 
@@ -218,13 +263,23 @@ class Neo4jClient(object):
             games (list[dict[str, Any]]): The list of games each with
                 parameters of `appid` and `name`.
         """
+        validated_games = self._validate_node_fields(
+            nodes=games,
+            defaults={
+                "appid": None,
+                "name": None,
+                "playtime_forever": 0,
+            },
+        )
         cypher = """
             MATCH (u:User {steamId: $steamid})
             UNWIND $games AS game
             MERGE (g:Game {appId: game.appid, name: game.name})
-            MERGE (u)-[:OWNS_GAME]->(g)
+            MERGE (u)-[:OWNS_GAME {
+                playtime: game.playtime_forever
+            }]->(g)
         """
-        self._write(cypher, steamid=steamid, games=games)
+        self._write(cypher, steamid=steamid, games=validated_games)
 
     def get_owned_games(self, steamid: str, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all owned games up to `limit` for the User node matching `steamid`
@@ -300,15 +355,20 @@ class Neo4jClient(object):
             DELETE r
         """
         self._write(delete_cypher, steamid=steamid)
-
+        # Validate the game nodes
+        validated_games = self._validate_node_fields(
+            nodes=games, defaults={"appid": None, "playtime_2weeks": 0}
+        )
         # Second query adds recently played relationships from the updated list
         update_cypher = """
             MATCH (u:User {steamId: $steamid})
             UNWIND $games as game 
             MATCH (g:Game {appId: game.appid})  
-            MERGE (u)-[:RECENTLY_PLAYED]->(g)
+            MERGE (u)-[:RECENTLY_PLAYED {
+                recentPlaytime: game.playtime_2weeks
+            }]->(g)
         """
-        return self._write(update_cypher, steamid=steamid, games=games)
+        return self._write(update_cypher, steamid=steamid, games=validated_games)
 
     def detach_delete(self) -> None:
         """WARNING: Removes all nodes and relationships from the graph!"""

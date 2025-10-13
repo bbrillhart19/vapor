@@ -1,9 +1,6 @@
-from pathlib import Path
-
 from rich.progress import track
 
 from vapor import clients
-from vapor.utils import utils
 
 
 def populate_friends(
@@ -89,6 +86,16 @@ def populate_games(
             per user query. If None, all games will be included.
             Defaults to None.
     """
+    # The fields we want to extract for the neo4j relationships
+    owned_games_fields = [
+        "appid",
+        "name",
+        "playtime_forever",
+    ]
+    recently_played_fields = [
+        "appid",
+        "playtime_2weeks",
+    ]
     # Get all users from the database
     users_df = neo4j_client.get_all_users()
     total_users = len(users_df)
@@ -101,12 +108,14 @@ def populate_games(
     ):
         owned_games = list(
             steam_client.get_user_owned_games(
-                user.steamid, ["appid", "name"], limit=limit
+                user.steamid, fields=owned_games_fields, limit=limit
             )
         )
         neo4j_client.add_owned_games(user.steamid, owned_games)
         recently_played_games = list(
-            steam_client.get_user_recently_played_games(user.steamid, limit=limit)
+            steam_client.get_user_recently_played_games(
+                user.steamid, fields=recently_played_fields, limit=limit
+            )
         )
         neo4j_client.update_recently_played_games(
             steamid=user.steamid, games=recently_played_games

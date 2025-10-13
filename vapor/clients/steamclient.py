@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Callable, Any, Generator, Union
+from typing import Callable, Any, Generator
 import time
-import warnings
 
 from steam_web_api import Steam
 
@@ -9,7 +8,7 @@ from vapor.utils import utils
 
 
 class SteamClient(Steam):
-    """`Steam` class implemented as it applies to Vapor"""
+    """`steam_web_api.Steam` class implemented for use with Vapor"""
 
     def __init__(
         self,
@@ -65,7 +64,8 @@ class SteamClient(Steam):
         """Query by user id to get details according to `fields`"""
         response = self._query_steam(self.users.get_user_details, steam_id=steamid)
         if not "player" in response:
-            warnings.warn(f"Could not get user details for {steamid}")
+            # NOTE: Silently ignoring these misses for now to avoid
+            # flooding console
             return {}
         user_details = response["player"]
         return self._extract_fields(user_details, fields)
@@ -90,7 +90,8 @@ class SteamClient(Steam):
             enriched=True,
         )
         if "friends" not in friends_response:
-            warnings.warn(f"Could not find friends for user={steamid}")
+            # NOTE: Silently ignoring these misses for now to avoid
+            # flooding console
             friends_list = []
         else:
             friends_list = friends_response["friends"]
@@ -105,6 +106,9 @@ class SteamClient(Steam):
         fields: list[str] = ["appid"],
         limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
+        """Parses the raw `games_response` and extracts the `fields`
+        and their values up to `limit` total games.
+        """
         if "games" not in games_response:
             games_list = []
         else:
@@ -126,18 +130,16 @@ class SteamClient(Steam):
         games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)
         return self._parse_games_response(games_response, fields=fields, limit=limit)
 
-    # TODO - finish this
-    def get_user_recently_played_games(self, steamid: str, limit: int | None = None):
+    def get_user_recently_played_games(
+        self, steamid: str, fields: list[str] = ["appid"], limit: int | None = None
+    ):
         """Get recently played games, the results of which should
         already have their details defined by `get_user_owned_games`.
-
-        NOTE: The underlying query only returns `appid` and additional
-        fields are not an option.
         """
         games_response = self._query_steam(
             self.users.get_user_recently_played_games, steam_id=steamid
         )
-        return self._parse_games_response(games_response, limit=limit)
+        return self._parse_games_response(games_response, fields=fields, limit=limit)
 
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]
@@ -149,7 +151,8 @@ class SteamClient(Steam):
         try:
             app_details = response[str(appid)]["data"]
         except KeyError:
-            warnings.warn(f"Could not retrieve details for appid={appid}")
+            # NOTE: Silently ignoring these misses for now to avoid
+            # flooding console
             return {}
 
         return app_details
