@@ -193,7 +193,6 @@ class Neo4jClient(object):
                         valid = False
                         break
                     # Not a required field, set default
-                    # print(field, "is missing")
                     validated_node[field] = val
                     continue
                 # Expected field is in node with value, set it as is
@@ -201,7 +200,6 @@ class Neo4jClient(object):
             # Add to validated_nodes if validated
             if valid:
                 validated_nodes.append(validated_node)
-        # print(validated_nodes)
         return validated_nodes
 
     def add_user(self, steamid: str, personaname: str) -> None:
@@ -226,14 +224,20 @@ class Neo4jClient(object):
             friends (list[dict[str, Any]]): The list of friends each with
                 parameters of `steamid` and `personaname`.
         """
-
+        validated_friends = self._validate_node_fields(
+            nodes=friends,
+            defaults={
+                "steamid": None,
+                "personaname": "Unavailable",
+            },
+        )
         cypher = """
             MATCH (u:User {steamId: $steamid})
             UNWIND $friends AS friend
             MERGE (f:User {steamId: friend.steamid, personaName: friend.personaname})
             MERGE (u)-[:HAS_FRIEND]-(f)
         """
-        self._write(cypher, steamid=steamid, friends=friends)
+        self._write(cypher, steamid=steamid, friends=validated_friends)
 
     def get_all_users(self, limit: int | None = None) -> pd.DataFrame:
         """Retrieve all `User` nodes from the database.
@@ -325,13 +329,20 @@ class Neo4jClient(object):
             genres (list[dict[str, Any]]): The genres the game
                 is a member of, including properties of
         """
+        validated_genres = self._validate_node_fields(
+            nodes=genres,
+            defaults={
+                "id": None,
+                "description": None,
+            },
+        )
         cypher = """
             MATCH (g:Game {appId: $appid})
             UNWIND $genres as genre
             MERGE (n:Genre {genreId: toInteger(genre.id), description: genre.description})
             MERGE (g)-[:HAS_GENRE]->(n)
         """
-        self._write(cypher, appid=appid, genres=genres)
+        self._write(cypher, appid=appid, genres=validated_genres)
 
     def update_recently_played_games(
         self, steamid: str, games: list[dict[str, Any]]
