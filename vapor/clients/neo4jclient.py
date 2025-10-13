@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 import warnings
 
+from loguru import logger
 from neo4j import GraphDatabase, RoutingControl, ExperimentalWarning
 import pandas as pd
 
@@ -124,7 +125,7 @@ class Neo4jClient(object):
         try:
             self.get_primary_user()
         except NotFoundException:
-            print("No primary user found.")
+            logger.warning("No primary user found.")
             return False
 
         # Check constraints
@@ -136,22 +137,22 @@ class Neo4jClient(object):
         constraints = set(self._get_constraints()["name"])
         missing_constraints = required_constraints - constraints
         if missing_constraints:
-            print(f"Missing constraints: {missing_constraints}")
+            logger.warning(f"Missing constraints: {missing_constraints}")
             return False
 
         return True
 
     def setup_from_primary_user(self, **primary_user) -> None:
         if self.is_setup:
-            print("Neo4j database is setup and valid.")
+            logger.info("Neo4j database is setup and valid.")
             return
 
-        print("Setting up Neo4j database with valid initial state...")
-        print(f"Setting primary user: {primary_user}")
+        logger.info("Setting up Neo4j database with valid initial state...")
+        logger.info(f"Setting primary user: {primary_user}")
         self.add_user(**primary_user)
         self._set_primary_user(primary_user["steamid"])
 
-        print("Setting necessary constraints...")
+        logger.info("Setting necessary constraints...")
         self._set_user_constraint()
         self._set_game_constraint()
         self._set_genre_constraint()
@@ -387,9 +388,8 @@ class Neo4jClient(object):
             MATCH (n)
             DETACH DELETE n
         """
-        warnings.warn(
-            message="Removing all nodes and relationships from the graph!"
-            + " This action cannote be undone",
-            category=UserWarning,
+        logger.warning(
+            "Removing all nodes and relationships from the graph!"
+            + " This action cannote be undone."
         )
         self._write(cypher)

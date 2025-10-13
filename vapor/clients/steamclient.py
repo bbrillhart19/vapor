@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Callable, Any, Generator
 import time
 
+from loguru import logger
 from steam_web_api import Steam
 
 from vapor.utils import utils
@@ -37,17 +38,21 @@ class SteamClient(Steam):
             # Too many requests, sleep and retry
             if e.args[0].startswith("429"):
                 if retries > 0:
-                    print(f"Too many requests, retrying (remaining: {retries})...")
+                    logger.warning(
+                        f"Too many requests, retrying (remaining: {retries})..."
+                    )
                     time.sleep(0.2)
                     return self._query_steam(query_func, retries=retries - 1, **kwargs)
                 else:
-                    print(
+                    logger.error(
                         f"Reached maximum retries, cannot complete query. Try again later!"
                     )
+            # TODO: Need to provide information back to caller for caller to handle
+            # and potentially provide more info
             elif e.args[0].startswith("401"):
-                print(f"Query unauthorized, skipping!")
+                logger.error(f"Query unauthorized, skipping!")
             else:
-                print(f"Caught an unhandled query exception:\n{e}")
+                logger.error(f"Caught an unhandled query exception:\n{e}")
 
         if response is None:
             response = {}

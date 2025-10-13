@@ -16,6 +16,7 @@ setup(
         "rich",
         "dotenv",
         "pandas",
+        "loguru",
     ],
     extras_require={
         "dev": [

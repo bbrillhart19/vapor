@@ -1,4 +1,5 @@
 from rich.progress import track
+from loguru import logger
 
 from vapor import clients
 
@@ -47,14 +48,16 @@ def populate_friends(
             limit,
         )
 
-    print(f"Populating friends from user={steamid}")
-
     # Get friends list, add to db and recurse for each (decrement hops)
     friends = list(
         steam_client.get_user_friends(steamid, ["steamid", "personaname"], limit=limit)
     )
     # Avoid adding friend relationships past the allowed hops
     if hops > 0:
+        logger.info(
+            f"Adding ({len(friends)}) friends from user={steamid}"
+            + f" [{hops} hop(s) remaining]"
+        )
         neo4j_client.add_friends(steamid, friends)
 
     for friend in friends:
@@ -73,9 +76,8 @@ def populate_games(
     limit: int | None = None,
 ) -> None:
     """Populate the neo4j database with games from the games list
-    for each user present in the database.
-
-    TODO: Plays, wishlisted relationships
+    for each user present in the database, as well as their
+    recently played games.
 
     Args:
         steam_client (SteamClient): The `SteamClient` instance to query
@@ -99,7 +101,7 @@ def populate_games(
     # Get all users from the database
     users_df = neo4j_client.get_all_users()
     total_users = len(users_df)
-    print(f"Found {total_users} total users to populate games from.")
+    logger.info(f"Found {total_users} total users to populate games from.")
     # Iterate through each user and add their games
     for user in track(
         users_df.itertuples(),
@@ -138,7 +140,7 @@ def populate_genres(
     """
     games_df = neo4j_client.get_all_games(limit=limit)
     total_games = len(games_df)
-    print(f"Found {total_games} total games to populate genres from.")
+    logger.info(f"Found {total_games} total games to populate genres from.")
 
     # Iterate through each game, retrieve details and add genres
     for game in track(
@@ -152,6 +154,7 @@ def populate_genres(
         neo4j_client.add_game_genres(game.appid, game_details["genres"])
 
 
+@logger.catch
 def steam2neo4j(
     hops: int = 2,
     init: bool = False,
@@ -162,11 +165,14 @@ def steam2neo4j(
     limit: int | None = None,
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
+    logger.info("Initializing SteamClient...")
     steam_client = clients.SteamClient.from_env()
+    logger.info("Initializing Neo4jClient...")
     neo4j_client = clients.Neo4jClient.from_env()
 
     # Setup neo4j with primary user
     if init:
+        logger.info("Retrieving primary user details and setting up...")
         primary_user = steam_client.get_primary_user_details(["steamid", "personaname"])
         neo4j_client.setup_from_primary_user(**primary_user)
 
@@ -183,17 +189,22 @@ def steam2neo4j(
 
     # Populate friends spanning from primary user
     if friends:
+        logger.info("Populating Steam users from friends lists...")
         populate_friends(
             steam_client, neo4j_client, steamid=None, hops=hops, limit=limit
         )
 
     # Populate games via all users (primary and friends)
     if games:
+        logger.info("Populating Steam games from available Steam users...")
         populate_games(steam_client, neo4j_client, limit=limit)
 
     # Populate genres via all games
     if genres:
+        logger.info("Populating genees from available Steam games...")
         populate_genres(steam_client, neo4j_client)
+
+    logger.success("Completed steam2neo4j sequence >>>")
 
 
 if __name__ == "__main__":
