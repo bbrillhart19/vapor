@@ -1,0 +1,12 @@
+### Compose structure for Vapor development and testing ###
+services:
+  # Neo4j GraphDB 
+  neo4j-dev:
+    image: neo4j:2025.05.0
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
+    # Map to different ports than the production service
+    ports:
+      - 7474:7475
+      - 7687:7688
+    
