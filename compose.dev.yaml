@@ -4,7 +4,7 @@ services:
   neo4j-dev:
     image: neo4j:2025.05.0
     environment:
-      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
+      - NEO4J_AUTH=neo4j-dev/neo4j-dev
     # Map to different ports than the production service
     ports:
       - 7474:7475
