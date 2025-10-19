@@ -1,18 +1,75 @@
-from typing import Any
+import random
+
 import pytest
 
 from vapor.utils import utils
 from vapor.clients import Neo4jClient, SteamClient
 
-# TODO: Create a "test" environment that creates an empty database
-# and yields it before using DETACH DELETE to empty it
+
+@pytest.fixture(scope="session")
+def steam_users() -> dict[str, dict]:
+    n_users = 10
+    users = {}
+    for i in range(n_users):
+        steamid = f"7123456789{i}"
+        users[steamid] = {"personaname": f"user{i}", "steamid": steamid}
+    return users
 
 
-@pytest.fixture(scope="session", autouse=True)
-def env() -> None:
-    utils.load_env()
+@pytest.fixture(scope="session")
+def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[str]]:
+    all_users = list(steam_users.keys())
+    friends_lists = {}
+    for steamid in steam_users:
+        n_friends = random.randint(1, len(all_users))
+        friends_lists[steamid] = random.choices(all_users, k=n_friends)
+    return friends_lists
+
+
+@pytest.fixture(scope="session")
+def steam_genres() -> list[dict[str, str]]:
+    n_genres = 10
+    genres = [{"id": i, "description": f"genre{i}"} for i in range(n_genres)]
+    return genres
+
+
+@pytest.fixtures(scope="session")
+def steam_games(steam_genres: list[dict[str, str]]) -> dict[int, dict]:
+    n_games = 30
+    games = {}
+    for i in range(n_games):
+        appid = 1000 + i
+        n_genres = random.randint(0, len(steam_genres))
+        genres = random.choices(steam_genres, k=n_genres)
+        games[appid] = {
+            "appid": appid,
+            "name": f"game{i}",
+            "genres": genres,
+        }
+    return games
+
+
+@pytest.fixtures(scope="session")
+def steam_owned_games(
+    steam_users: dict[str, dict], steam_games: dict[int, dict]
+) -> dict[str, list[dict]]:
+    owned_games = {}
+    all_games = list(steam_games.keys())
+    for steamid in steam_users:
+        n_owned_games = random.randint(0, len(all_games))
+        playtime = random.randint(0, 1000)
+        owned_games[steamid] = [
+            {**steam_games[appid], "playtime_forever": playtime}
+            for appid in random.choices(all_games, k=n_owned_games)
+        ]
+    return owned_games
+
 
 
 @pytest.fixture(scope="session")
 def neo4j_client() -> Neo4jClient:
-    return Neo4jClient.from_env()
+    return Neo4jClient(
+        uri="neo4j://localhost:7688",
+        auth=("neo4j-dev", "neo4j-dev"),
+        database="neo4j",
+    )
