@@ -12,4 +12,5 @@ load_dotenv(ENV_FILE)
 DATA_PATH = utils.cast_path(utils.get_env_var("VAPOR_DATA_PATH"))
 
 # Initialize the log file/logger instance
-logging.init_logger()
+# TODO: Keep?
+# logging.init_logger()

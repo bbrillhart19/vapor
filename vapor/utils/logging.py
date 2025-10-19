@@ -11,4 +11,4 @@ def init_logger(name: str = "vapor", **kwargs) -> None:
 
     # Add to logger w/ extra kwargs
     logger.add(logfile, **kwargs)
-    logger.info(f"Initialized logger")
+    logger.info(f"Initialized logger, saving to {log_folder} >>>")
