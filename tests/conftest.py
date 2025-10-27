@@ -1,9 +1,15 @@
 import random
 
 import pytest
+from pytest_mock import mocker
 
 from vapor.utils import utils
 from vapor.clients import Neo4jClient, SteamClient
+
+
+@pytest.fixture(scope="function")
+def steam_client() -> SteamClient:
+    return SteamClient("test", "user0")
 
 
 @pytest.fixture(scope="session")
@@ -11,30 +17,32 @@ def steam_users() -> dict[str, dict]:
     n_users = 10
     users = {}
     for i in range(n_users):
-        steamid = f"7123456789{i}"
+        steamid = f"user{i}"
         users[steamid] = {"personaname": f"user{i}", "steamid": steamid}
     return users
 
 
 @pytest.fixture(scope="session")
-def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[str]]:
+def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
     all_users = list(steam_users.keys())
     friends_lists = {}
     for steamid in steam_users:
         n_friends = random.randint(1, len(all_users))
-        friends_lists[steamid] = random.choices(all_users, k=n_friends)
+        friends_lists[steamid] = [
+            steam_users[u] for u in random.choices(all_users, k=n_friends)
+        ]
     return friends_lists
 
 
 @pytest.fixture(scope="session")
-def steam_genres() -> list[dict[str, str]]:
+def steam_genres() -> list[dict]:
     n_genres = 10
     genres = [{"id": i, "description": f"genre{i}"} for i in range(n_genres)]
     return genres
 
 
-@pytest.fixtures(scope="session")
-def steam_games(steam_genres: list[dict[str, str]]) -> dict[int, dict]:
+@pytest.fixture(scope="session")
+def steam_games(steam_genres: list[dict]) -> dict[int, dict]:
     n_games = 30
     games = {}
     for i in range(n_games):
@@ -49,7 +57,7 @@ def steam_games(steam_genres: list[dict[str, str]]) -> dict[int, dict]:
     return games
 
 
-@pytest.fixtures(scope="session")
+@pytest.fixture(scope="session")
 def steam_owned_games(
     steam_users: dict[str, dict], steam_games: dict[int, dict]
 ) -> dict[str, list[dict]]:
@@ -65,11 +73,10 @@ def steam_owned_games(
     return owned_games
 
 
-
-@pytest.fixture(scope="session")
-def neo4j_client() -> Neo4jClient:
-    return Neo4jClient(
-        uri="neo4j://localhost:7688",
-        auth=("neo4j-dev", "neo4j-dev"),
-        database="neo4j",
-    )
+# @pytest.fixture(scope="session")
+# def neo4j_client() -> Neo4jClient:
+#     return Neo4jClient(
+#         uri="neo4j://localhost:7688",
+#         auth=("neo4j-dev", "neo4j-dev"),
+#         database="neo4j",
+#     )
