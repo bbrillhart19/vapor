@@ -23,6 +23,7 @@ setup(
             "black",
             "pytest",
             "pytest-coverage",
+            "pytest-mock",
         ]
     },
     packages=find_packages(),
