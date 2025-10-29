@@ -12,7 +12,7 @@ def steam_client() -> SteamClient:
     return SteamClient("test", "user0")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def steam_users() -> dict[str, dict]:
     n_users = 10
     users = {}
@@ -22,7 +22,7 @@ def steam_users() -> dict[str, dict]:
     return users
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
     all_users = list(steam_users.keys())
     friends_lists = {}
@@ -34,14 +34,14 @@ def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
     return friends_lists
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def steam_genres() -> list[dict]:
     n_genres = 10
     genres = [{"id": i, "description": f"genre{i}"} for i in range(n_genres)]
     return genres
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def steam_games(steam_genres: list[dict]) -> dict[int, dict]:
     n_games = 30
     games = {}
@@ -73,10 +73,10 @@ def steam_owned_games(
     return owned_games
 
 
-# @pytest.fixture(scope="session")
-# def neo4j_client() -> Neo4jClient:
-#     return Neo4jClient(
-#         uri="neo4j://localhost:7688",
-#         auth=("neo4j-dev", "neo4j-dev"),
-#         database="neo4j",
-#     )
+@pytest.fixture(scope="function")
+def neo4j_client() -> Neo4jClient:
+    return Neo4jClient(
+        uri="neo4j://localhost:7688",
+        auth=("neo4j", "neo4j-dev"),
+        database="neo4j",
+    )
