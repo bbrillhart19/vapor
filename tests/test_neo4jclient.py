@@ -6,16 +6,18 @@ import pandas as pd
 from vapor.clients import Neo4jClient
 from vapor.clients.neo4jclient import NotFoundException
 
+from helpers import globals
+
 
 def test_neo4j_from_env(mocker):
     """Tests setting up `SteamClient` from env vars"""
     mocker.patch.dict(
         os.environ,
         {
-            "NEO4J_URI": "neo4j://localhost:7688",
-            "NEO4J_USER": "neo4j",
-            "NEO4J_PW": "neo4j-dev",
-            "NEO4J_DATABASE": "neo4j",
+            "NEO4J_URI": globals.NEO4J_URI,
+            "NEO4J_USER": globals.NEO4J_USER,
+            "NEO4J_PW": globals.NEO4J_PW,
+            "NEO4J_DATABASE": globals.NEO4J_DATABASE,
         },
     )
     client = Neo4jClient.from_env()

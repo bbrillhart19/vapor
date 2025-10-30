@@ -1,15 +1,16 @@
 import random
 
 import pytest
-from pytest_mock import mocker
 
 from vapor.utils import utils
 from vapor.clients import Neo4jClient, SteamClient
 
+from helpers import globals
+
 
 @pytest.fixture(scope="function")
 def steam_client() -> SteamClient:
-    return SteamClient("test", "user0")
+    return SteamClient(globals.STEAM_API_KEY, globals.STEAM_ID)
 
 
 @pytest.fixture(scope="function")
@@ -17,7 +18,7 @@ def steam_users() -> dict[str, dict]:
     n_users = 10
     users = {}
     for i in range(n_users):
-        steamid = f"user{i}"
+        steamid = globals.STEAM_ID[:-4] + str(int(globals.STEAM_ID[-4:]) + i)
         users[steamid] = {"personaname": f"user{i}", "steamid": steamid}
     return users
 
@@ -57,7 +58,7 @@ def steam_games(steam_genres: list[dict]) -> dict[int, dict]:
     return games
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def steam_owned_games(
     steam_users: dict[str, dict], steam_games: dict[int, dict]
 ) -> dict[str, list[dict]]:
@@ -76,7 +77,7 @@ def steam_owned_games(
 @pytest.fixture(scope="function")
 def neo4j_client() -> Neo4jClient:
     return Neo4jClient(
-        uri="neo4j://localhost:7688",
-        auth=("neo4j", "neo4j-dev"),
-        database="neo4j",
+        uri=globals.NEO4J_URI,
+        auth=(globals.NEO4J_USER, globals.NEO4J_PW),
+        database=globals.NEO4J_DATABASE,
     )

@@ -5,6 +5,7 @@ import pytest
 from steam_web_api import Users, Apps
 
 from vapor.clients import SteamClient
+from helpers import globals
 
 
 def test_steam_from_env(mocker):
@@ -82,10 +83,9 @@ def test_get_user_friends(
     mocker, steam_client: SteamClient, steam_friends: dict[str, list[str]], limit: int
 ):
     """Tests retrieving a user's friends list"""
-    steamid = "user0"
-    mock_response = {"friends": steam_friends[steamid]}
+    mock_response = {"friends": steam_friends[globals.STEAM_ID]}
     mocker.patch.object(Users, "get_user_friends_list", return_value=mock_response)
-    friends = list(steam_client.get_user_friends(steamid, limit=limit))
+    friends = list(steam_client.get_user_friends(globals.STEAM_ID, limit=limit))
     if limit:
         assert len(friends) == limit
     for friend in friends:
@@ -93,7 +93,7 @@ def test_get_user_friends(
 
     error_response = {"error": "foo"}
     mocker.patch.object(Users, "get_user_friends_list", return_value=error_response)
-    friends = list(steam_client.get_user_friends(steamid, limit=limit))
+    friends = list(steam_client.get_user_friends(globals.STEAM_ID, limit=limit))
     assert not friends
 
 
@@ -121,11 +121,10 @@ def test_get_user_owned_games(
     mocker, steam_client: SteamClient, steam_owned_games: dict[str, list[dict]]
 ):
     """Tests getting the owned games for a user"""
-    steamid = "user0"
-    mock_response = {"games": steam_owned_games[steamid]}
+    mock_response = {"games": steam_owned_games[globals.STEAM_ID]}
     mocker.patch.object(Users, "get_owned_games", return_value=mock_response)
-    games = list(steam_client.get_user_owned_games(steamid))
-    assert len(games) == len(steam_owned_games[steamid])
+    games = list(steam_client.get_user_owned_games(globals.STEAM_ID))
+    assert len(games) == len(steam_owned_games[globals.STEAM_ID])
     for game in games:
         assert "appid" in game
 
@@ -134,13 +133,12 @@ def test_get_user_recently_played_games(
     mocker, steam_client: SteamClient, steam_owned_games: dict[str, list[dict]]
 ):
     """Tests getting the recently played games for a user"""
-    steamid = "user0"
-    mock_response = {"games": steam_owned_games[steamid]}
+    mock_response = {"games": steam_owned_games[globals.STEAM_ID]}
     mocker.patch.object(
         Users, "get_user_recently_played_games", return_value=mock_response
     )
-    games = list(steam_client.get_user_recently_played_games(steamid))
-    assert len(games) == len(steam_owned_games[steamid])
+    games = list(steam_client.get_user_recently_played_games(globals.STEAM_ID))
+    assert len(games) == len(steam_owned_games[globals.STEAM_ID])
     for game in games:
         assert "appid" in game
 
