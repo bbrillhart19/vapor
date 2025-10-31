@@ -10,9 +10,12 @@ from helpers import globals
 
 def test_steam_from_env(mocker):
     """Tests setting up `SteamClient` from env vars"""
-    mocker.patch.dict(os.environ, {"STEAM_API_KEY": "test", "STEAM_ID": "test"})
+    mocker.patch.dict(
+        os.environ,
+        {"STEAM_API_KEY": globals.STEAM_API_KEY, "STEAM_ID": globals.STEAM_ID},
+    )
     client = SteamClient.from_env()
-    assert client.steamid == "test"
+    assert client.steamid == globals.STEAM_ID
 
 
 @pytest.mark.parametrize(
