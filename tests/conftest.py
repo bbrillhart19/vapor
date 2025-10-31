@@ -1,4 +1,5 @@
 import random
+from typing import Generator
 
 import pytest
 
@@ -6,6 +7,9 @@ from vapor.utils import utils
 from vapor.clients import Neo4jClient, SteamClient
 
 from helpers import globals
+
+
+random.seed(globals.SEED)
 
 
 @pytest.fixture(scope="function")
@@ -30,7 +34,7 @@ def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
     for steamid in steam_users:
         n_friends = random.randint(1, len(all_users))
         friends_lists[steamid] = [
-            steam_users[u] for u in random.choices(all_users, k=n_friends)
+            steam_users[u] for u in random.sample(all_users, k=n_friends)
         ]
     return friends_lists
 
@@ -48,8 +52,8 @@ def steam_games(steam_genres: list[dict]) -> dict[int, dict]:
     games = {}
     for i in range(n_games):
         appid = 1000 + i
-        n_genres = random.randint(0, len(steam_genres))
-        genres = random.choices(steam_genres, k=n_genres)
+        n_genres = random.randint(1, len(steam_genres))
+        genres = random.sample(steam_genres, k=n_genres)
         games[appid] = {
             "appid": appid,
             "name": f"game{i}",
@@ -65,19 +69,26 @@ def steam_owned_games(
     owned_games = {}
     all_games = list(steam_games.keys())
     for steamid in steam_users:
-        n_owned_games = random.randint(0, len(all_games))
+        n_owned_games = random.randint(2, len(all_games))
         playtime = random.randint(0, 1000)
+        playtime_2weeks = playtime / 2
         owned_games[steamid] = [
-            {**steam_games[appid], "playtime_forever": playtime}
-            for appid in random.choices(all_games, k=n_owned_games)
+            {
+                **steam_games[appid],
+                "playtime_forever": playtime,
+                "playtime_2weeks": playtime_2weeks,
+            }
+            for appid in random.sample(all_games, k=n_owned_games)
         ]
     return owned_games
 
 
 @pytest.fixture(scope="function")
-def neo4j_client() -> Neo4jClient:
-    return Neo4jClient(
+def neo4j_client() -> Generator[Neo4jClient, None, None]:
+    client = Neo4jClient(
         uri=globals.NEO4J_URI,
         auth=(globals.NEO4J_USER, globals.NEO4J_PW),
         database=globals.NEO4J_DATABASE,
     )
+    yield client
+    client.clear()

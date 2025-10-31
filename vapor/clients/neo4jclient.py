@@ -160,6 +160,34 @@ class Neo4jClient(object):
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
 
+    def _remove_constraints(self) -> None:
+        """Remove all constraints"""
+        # NOTE: We can only drop one constraint at a time
+        cypher = """
+            DROP CONSTRAINT $constraint IF EXISTS
+        """
+        for constraint in self._get_constraints()["name"]:
+            self._write(cypher, constraint=constraint)
+
+    def _detach_delete(self) -> None:
+        """Remove all nodes and relationships from the graph"""
+        cypher = """
+            MATCH (n)
+            DETACH DELETE n
+        """
+        self._write(cypher)
+
+    def clear(self) -> None:
+        """Clears the graph entirely, including all nodes,
+        relationships, and constraints
+        """
+        logger.warning(
+            "Removing all nodes, relationships, and cosntraints from the graph!"
+            + " This action cannote be undone."
+        )
+        self._detach_delete()
+        self._remove_constraints()
+
     @staticmethod
     def _validate_node_fields(
         nodes: list[dict[str, Any]], defaults: dict[str, Any]
@@ -296,7 +324,7 @@ class Neo4jClient(object):
             pd.DataFrame: All `Game` nodes owned by the user.
         """
         cypher = """
-            MATCH (u: {steamId: $steamid})
+            MATCH (u:User {steamId: $steamid})
             MATCH (u)-[:OWNS_GAME]->(g:Game)
             RETURN g.appId as appid, g.name as name
         """
@@ -381,15 +409,3 @@ class Neo4jClient(object):
             }]->(g)
         """
         return self._write(update_cypher, steamid=steamid, games=validated_games)
-
-    def detach_delete(self) -> None:
-        """WARNING: Removes all nodes and relationships from the graph!"""
-        cypher = """
-            MATCH (n)
-            DETACH DELETE n
-        """
-        logger.warning(
-            "Removing all nodes and relationships from the graph!"
-            + " This action cannote be undone."
-        )
-        self._write(cypher)
