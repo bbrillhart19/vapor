@@ -182,7 +182,7 @@ class Neo4jClient(object):
         relationships, and constraints
         """
         logger.warning(
-            "Removing all nodes, relationships, and cosntraints from the graph!"
+            "Removing all nodes, relationships, and constraints from the graph!"
             + " This action cannote be undone."
         )
         self._detach_delete()
