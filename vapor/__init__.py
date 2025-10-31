@@ -1,6 +1,7 @@
-from pathlib import Path
+from dotenv import load_dotenv
 
 from .utils import utils
 
-# Load environment
-utils.load_env(utils.get_env_var("VAPOR_ENV", "./.env"))
+# Set up environment file and load
+ENV_FILE = utils.get_env_var("VAPOR_ENV", "./.env")
+load_dotenv(ENV_FILE)

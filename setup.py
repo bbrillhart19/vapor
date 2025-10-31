@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="vapor",
-    version="0.0.3",
+    version="0.0.4",
     description="Personalized AI Companion for Steam",
     author="Brett Brillhart",
     author_email="bbrillhart19@gmail.com",
@@ -16,12 +16,14 @@ setup(
         "rich",
         "dotenv",
         "pandas",
+        "loguru",
     ],
     extras_require={
         "dev": [
             "black",
             "pytest",
             "pytest-coverage",
+            "pytest-mock",
         ]
     },
     packages=find_packages(),

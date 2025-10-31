@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Callable, Any, Generator
 import time
 
+from loguru import logger
 from steam_web_api import Steam
 
 from vapor.utils import utils
@@ -26,7 +27,11 @@ class SteamClient(Steam):
         )
 
     def _query_steam(
-        self, query_func: Callable[..., dict], retries: int = 5, **kwargs
+        self,
+        query_func: Callable[..., dict],
+        retries: int = 5,
+        retry_duration: float = 0.2,
+        **kwargs,
     ) -> dict:
         # Exception: 429 Too Many Requests
         # Exception: 401 Unauthorized {}
@@ -37,17 +42,21 @@ class SteamClient(Steam):
             # Too many requests, sleep and retry
             if e.args[0].startswith("429"):
                 if retries > 0:
-                    print(f"Too many requests, retrying (remaining: {retries})...")
-                    time.sleep(0.2)
+                    logger.warning(
+                        f"Too many requests, retrying (remaining: {retries})..."
+                    )
+                    time.sleep(retry_duration)
                     return self._query_steam(query_func, retries=retries - 1, **kwargs)
                 else:
-                    print(
+                    logger.error(
                         f"Reached maximum retries, cannot complete query. Try again later!"
                     )
+            # TODO: Need to provide information back to caller for caller to handle
+            # and potentially provide more info
             elif e.args[0].startswith("401"):
-                print(f"Query unauthorized, skipping!")
+                logger.error(f"Query unauthorized, skipping!")
             else:
-                print(f"Caught an unhandled query exception:\n{e}")
+                logger.error(f"Caught an unhandled query exception:\n{e}")
 
         if response is None:
             response = {}
@@ -144,7 +153,7 @@ class SteamClient(Steam):
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]
     ) -> dict[str, Any]:
-        """Get the genres of a game specified by `appid` and retrieve"""
+        """Get the details of a game with `appid` applied to the returned fields specified by `filters`. NOTE: The 'basic' filter will return a `genres` field."""
         response = self._query_steam(
             self.apps.get_app_details, app_id=int(appid), filters=",".join(filters)
         )

@@ -50,14 +50,14 @@ If all went well, you should be able to navigate to http://localhost:7474 in you
 
 ## Usage
 
-### Steam to Neo4j
+### Neo4j Database Population
 First, you will need to populate the graph with data from Steam. This process will set you as the central node and populate in hops outwards from your friends (friends of friends, ..., etc.). See the usage here:
 ```shell
-python vapor/steam2neo4j.py -h
+python vapor/populate.py -h
 ```
 To populate/setup for the first time, enable all populating commands like so:
 ```shell
-python vapor/steam2neo4j.py -i -f -g -G
+python vapor/populate.py -i -f -g -G
 ```
 Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) and view the results. For example, to view the graph of Users and their "friendships":
 ```cypher
@@ -67,24 +67,33 @@ MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
 ## Development
 Refer to this section only if you are developing the codebase. 
 
+### Development Checklist
+- [ ] Ensure [environment](#installation) is setup and activated
+- [ ] Use the Docker services for [development](#docker-development-containers)
+- [ ] Make code changes with proper [formatting](#code-formatting)
+- [ ] Locally, ensure passing [unit tests](#unit-tests)
+- [ ] TODO: CI/CD with Actions
+
 ### Installation
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
 pip install -e .[dev]
 ```
 
-### Development Checklist
-- [ ] Ensure [environment](#installation) is setup and activated
-- [ ] Make code changes with proper [formatting](#code-formatting)
-- [ ] TODO: Locally, ensure passing [unit tests](#unit-tests)
-- [ ] TODO: CI/CD with Actions
-
-#### Code Formatting
-This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
+### Docker Development Container(s)
+To use services for development work, spin up with the `dev` compose file:
 ```shell
-black vapor
+docker compose -f compose.dev.yaml up -d
 ```
 
-#### Unit Tests
-TODO - `pytest`
+### Code Formatting
+This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
+```shell
+black vapor tests
+```
 
+### Unit Tests
+A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers:
+```shell
+bash scripts/run-tests.sh
+```

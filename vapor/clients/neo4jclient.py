@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 import warnings
 
+from loguru import logger
 from neo4j import GraphDatabase, RoutingControl, ExperimentalWarning
 import pandas as pd
 
@@ -124,7 +125,7 @@ class Neo4jClient(object):
         try:
             self.get_primary_user()
         except NotFoundException:
-            print("No primary user found.")
+            logger.warning("No primary user found.")
             return False
 
         # Check constraints
@@ -136,28 +137,56 @@ class Neo4jClient(object):
         constraints = set(self._get_constraints()["name"])
         missing_constraints = required_constraints - constraints
         if missing_constraints:
-            print(f"Missing constraints: {missing_constraints}")
+            logger.warning(f"Missing constraints: {missing_constraints}")
             return False
 
         return True
 
     def setup_from_primary_user(self, **primary_user) -> None:
         if self.is_setup:
-            print("Neo4j database is setup and valid.")
+            logger.info("Neo4j database is setup and valid.")
             return
 
-        print("Setting up Neo4j database with valid initial state...")
-        print(f"Setting primary user: {primary_user}")
+        logger.info("Setting up Neo4j database with valid initial state...")
+        logger.info(f"Setting primary user: {primary_user}")
         self.add_user(**primary_user)
         self._set_primary_user(primary_user["steamid"])
 
-        print("Setting necessary constraints...")
+        logger.info("Setting necessary constraints...")
         self._set_user_constraint()
         self._set_game_constraint()
         self._set_genre_constraint()
 
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
+
+    def _remove_constraints(self) -> None:
+        """Remove all constraints"""
+        # NOTE: We can only drop one constraint at a time
+        cypher = """
+            DROP CONSTRAINT $constraint IF EXISTS
+        """
+        for constraint in self._get_constraints()["name"]:
+            self._write(cypher, constraint=constraint)
+
+    def _detach_delete(self) -> None:
+        """Remove all nodes and relationships from the graph"""
+        cypher = """
+            MATCH (n)
+            DETACH DELETE n
+        """
+        self._write(cypher)
+
+    def clear(self) -> None:
+        """Clears the graph entirely, including all nodes,
+        relationships, and constraints
+        """
+        logger.warning(
+            "Removing all nodes, relationships, and constraints from the graph!"
+            + " This action cannote be undone."
+        )
+        self._detach_delete()
+        self._remove_constraints()
 
     @staticmethod
     def _validate_node_fields(
@@ -295,7 +324,7 @@ class Neo4jClient(object):
             pd.DataFrame: All `Game` nodes owned by the user.
         """
         cypher = """
-            MATCH (u: {steamId: $steamid})
+            MATCH (u:User {steamId: $steamid})
             MATCH (u)-[:OWNS_GAME]->(g:Game)
             RETURN g.appId as appid, g.name as name
         """
@@ -380,16 +409,3 @@ class Neo4jClient(object):
             }]->(g)
         """
         return self._write(update_cypher, steamid=steamid, games=validated_games)
-
-    def detach_delete(self) -> None:
-        """WARNING: Removes all nodes and relationships from the graph!"""
-        cypher = """
-            MATCH (n)
-            DETACH DELETE n
-        """
-        warnings.warn(
-            message="Removing all nodes and relationships from the graph!"
-            + " This action cannote be undone",
-            category=UserWarning,
-        )
-        self._write(cypher)
