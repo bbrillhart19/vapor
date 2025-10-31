@@ -67,24 +67,33 @@ MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
 ## Development
 Refer to this section only if you are developing the codebase. 
 
+### Development Checklist
+- [ ] Ensure [environment](#installation) is setup and activated
+- [ ] Use the Docker services for [development](#docker-development-containers)
+- [ ] Make code changes with proper [formatting](#code-formatting)
+- [ ] Locally, ensure passing [unit tests](#unit-tests)
+- [ ] TODO: CI/CD with Actions
+
 ### Installation
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
 pip install -e .[dev]
 ```
 
-### Development Checklist
-- [ ] Ensure [environment](#installation) is setup and activated
-- [ ] Make code changes with proper [formatting](#code-formatting)
-- [ ] TODO: Locally, ensure passing [unit tests](#unit-tests)
-- [ ] TODO: CI/CD with Actions
-
-#### Code Formatting
-This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
+### Docker Development Container(s)
+To use services for development work, spin up with the `dev` compose file:
 ```shell
-black vapor
+docker compose -f compose.dev.yaml up -d
 ```
 
-#### Unit Tests
-TODO - `pytest`
+### Code Formatting
+This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
+```shell
+black vapor tests
+```
 
+### Unit Tests
+A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers.
+```shell
+bash scripts/run-tests.sh
+```
