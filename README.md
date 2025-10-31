@@ -50,14 +50,14 @@ If all went well, you should be able to navigate to http://localhost:7474 in you
 
 ## Usage
 
-### Steam to Neo4j
+### Neo4j Database Population
 First, you will need to populate the graph with data from Steam. This process will set you as the central node and populate in hops outwards from your friends (friends of friends, ..., etc.). See the usage here:
 ```shell
-python vapor/steam2neo4j.py -h
+python vapor/populate.py -h
 ```
 To populate/setup for the first time, enable all populating commands like so:
 ```shell
-python vapor/steam2neo4j.py -i -f -g -G
+python vapor/populate.py -i -f -g -G
 ```
 Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) and view the results. For example, to view the graph of Users and their "friendships":
 ```cypher
