@@ -9,4 +9,10 @@ services:
     ports:
       - 7475:7474
       - 7688:7687
+    # Rename the network so it doesn't conflict with production service
+    networks:
+      dev: {}
+
+networks:
+  dev: {}
     
