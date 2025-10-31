@@ -93,7 +93,7 @@ black vapor tests
 ```
 
 ### Unit Tests
-A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers.
+A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
 bash scripts/run-tests.sh
 ```
