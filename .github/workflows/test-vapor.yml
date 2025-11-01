@@ -2,12 +2,12 @@ name: Test Vapor Python Package
 
 # Wokflow triggers
 on:
-    # Any push to the main branch
+  # Any push to the main branch
   push:
     branches: [ "main" ]
-    # When review is requested for a PR that targets the main branch
+  # When review is requested for a PR that targets the main branch
   pull_request:
-    types: ["review_requested"]
+    types: ["ready_for_review"]
     branches: [ "main" ]
 
 permissions:
