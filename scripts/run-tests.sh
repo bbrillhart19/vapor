@@ -5,6 +5,6 @@ test_args=$1
 docker compose -f compose.dev.yaml up -d && 
 python tests/helpers/verify_neo4j_connect.py &&
 # Run tests
-pytest $test_args --cov=vapor --cov-report=term-missing
+pytest $test_args --cov=vapor --cov-report=xml:tests/coverage.xml
 # Teardown neo4j
 docker compose -f compose.dev.yaml down
