@@ -21,6 +21,7 @@ setup(
     extras_require={
         "dev": [
             "black",
+            "flake8",
             "pytest",
             "pytest-coverage",
             "pytest-mock",
