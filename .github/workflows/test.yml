@@ -49,12 +49,14 @@ jobs:
           pytest-xml-coverage-path: ./coverage.xml
           junitxml-path: ./pytest.xml
           hide-comment: ${{ env.BRANCH_NAME == 'main' }}
-      - name: Update README
-        run: |
-          sed -i '/<!-- Pytest Coverage Badge:Begin -->/,/<!-- Pytest Coverage Badge:End -->/c\<!-- Pytest Coverage Badge:Begin -->\n${{ steps.coverage.outputs.coverageHtml }}\n<!-- Pytest Coverage Badge:End -->' ./README.md
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Coverage Badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          commit_message: ':robot: Update coverage'
-          file_pattern: README.md
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 6914181b8919f158adf1aeaca40bea63
+          filename: vapor-coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.coverage }}
+          color: ${{ steps.coverage.outputs.color }}
+      
       
