@@ -1,0 +1,63 @@
+name: Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: ["ready_for_review"]
+    branches: ["*"]
+
+permissions:
+  contents: write
+  checks: write
+  pull-requests: write
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
+jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Check formatting with black
+        run: |
+          # Stop the build if there are formatting errors
+          black --check vapor tests        
+      - name: Lint with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Run tests
+        run: |
+          bash scripts/run-tests.sh "--cov-report=xml:coverage.xml --junitxml=pytest.xml"
+      - name: Pytest coverage comment
+        id: coverage
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: ./coverage.xml
+          junitxml-path: ./pytest.xml
+          hide-comment: ${{ env.BRANCH_NAME == 'main' }}
+      - name: Coverage Badge
+        if: ${{ env.BRANCH_NAME == 'main' }}
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 6914181b8919f158adf1aeaca40bea63
+          filename: vapor-coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.coverage }}
+          color: ${{ steps.coverage.outputs.color }}
+      
+      

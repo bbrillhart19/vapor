@@ -1,5 +1,10 @@
 Vapor
 -------
+<p align="center">
+    <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
+    <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Coverage" src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bbrillhart19/6914181b8919f158adf1aeaca40bea63/raw/vapor-coverage.json"></a>
+    <a href="https://github.com/bbrillhart19/vapor/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/bbrillhart19/vapor.svg"></a>
+</p>
 
 A (to-be) GraphRAG based video game recommendation system with Steam Web API and Neo4j.
 
