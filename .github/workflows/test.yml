@@ -12,11 +12,15 @@ permissions:
   checks: write
   pull-requests: write
 
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
 jobs:
     test:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up Python 3.12
         uses: actions/setup-python@v3
         with:
@@ -39,8 +43,18 @@ jobs:
         run: |
           bash scripts/run-tests.sh "--cov-report=xml:coverage.xml --junitxml=pytest.xml"
       - name: Pytest coverage comment
+        id: coverage
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-xml-coverage-path: ./coverage.xml
           junitxml-path: ./pytest.xml
-          
+          hide-comment: ${{ env.BRANCH_NAME == 'main' }}
+      - name: Update README
+        run: |
+          sed -i '/<!-- Pytest Coverage Badge:Begin -->/,/<!-- Pytest Coverage Badge:End -->/c\<!-- Pytest Coverage Badge:Begin -->\n${{ steps.coverage.outputs.coverageHtml }}\n<!-- Pytest Coverage Badge:End -->' ./README.md
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ':robot: Update coverage'
+          file_pattern: README.md
+      
