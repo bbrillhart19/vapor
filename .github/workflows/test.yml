@@ -50,6 +50,7 @@ jobs:
           junitxml-path: ./pytest.xml
           hide-comment: ${{ env.BRANCH_NAME == 'main' }}
       - name: Coverage Badge
+        if: ${{ env.BRANCH_NAME == 'main' }}
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
