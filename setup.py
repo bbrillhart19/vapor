@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="vapor",
-    version="0.0.4",
+    version="0.0.5",
     description="Personalized AI Companion for Steam",
     author="Brett Brillhart",
     author_email="bbrillhart19@gmail.com",
