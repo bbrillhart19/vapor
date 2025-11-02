@@ -1,6 +1,8 @@
-name: Test Vapor Python Package
+name: Test
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     types: ["ready_for_review"]
     branches: ["*"]
@@ -35,9 +37,10 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          bash scripts/run-tests.sh
+          bash scripts/run-tests.sh "--cov-report=xml:coverage.xml --junitxml=pytest.xml"
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:
-          pytest-xml-coverage-path: ./tests/coverage.xml
-      
+          pytest-xml-coverage-path: ./coverage.xml
+          junitxml-path: ./pytest.xml
+          
