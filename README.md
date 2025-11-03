@@ -15,6 +15,7 @@ Before proceeding, clone the repository to your system.
 - Python
 - Pip
 - [Docker](#docker-installation)
+- [Ollama]
 
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
@@ -46,12 +47,22 @@ Install Docker via the CLI:
 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
 
+### Ollama
+The project uses open-source models with [Ollama](https://docs.ollama.com/) and you will need to create an account (it's free) and then download `Ollama` depending on your OS by following the instructions [here](https://ollama.com/download/linux)
+
+#### Embeddings
+*TODO: Script this and make it configurable.* Pull `embeddinggemma` with:
+```shell
+ollama pull embeddinggemma
+```
+
 ### Start Neo4j
 [Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
 ```shell
 docker compose up -d
 ```
-If all went well, you should be able to navigate to http://localhost:7474 in your browser and view the `noe4j` database. If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
+Navigate to http://localhost:7474 in your browser and view the `neo4j` database. Use the `NEO4J_USER` and `NEO4J_PW` values to log in from your [environment](#setup-environment). If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
+
 
 ## Usage
 
