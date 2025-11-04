@@ -103,13 +103,13 @@ def test_populate(
     )
 
     # Mock the steam client to return genres for each game
-    def mocked_game_details(appid: int, *args, **kwargs):
-        return {"genres": steam_games[appid]["genres"]}
+    def mocked_game_genres(appid: int, *args, **kwargs):
+        return steam_games[appid]["genres"]
 
     mocker.patch.object(
         SteamClient,
-        "get_game_details",
-        side_effect=mocked_game_details,
+        "get_game_genres",
+        side_effect=mocked_game_genres,
     )
 
     # Set small limit for brevity

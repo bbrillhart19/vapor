@@ -154,9 +154,27 @@ def test_get_game_details(
     mocker.patch.object(Apps, "get_app_details", return_value=mock_response)
     response = steam_client.get_game_details(appid)
     assert "name" in response
-    assert "genres" in response
 
     error_response = {"error": "foo"}
     mocker.patch.object(Apps, "get_app_details", return_value=error_response)
     response = steam_client.get_game_details(appid)
     assert response == {}
+
+
+def test_about_the_game(
+    mocker, steam_client: SteamClient, steam_games: dict[int, dict]
+):
+    """Tests getting the game description for a game with an `appid`"""
+    appid = 1000
+    mock_html = "<p><strong>Zed's</strong> dead baby, <em>Zed's</em> dead.</p>"
+
+    mock_response = {str(appid): {"data": {"about_the_game": mock_html}}}
+    mocker.patch.object(Apps, "get_app_details", return_value=mock_response)
+    game_doc = steam_client.about_the_game(appid)
+    expected_doc = "Zed's dead baby, Zed's dead.\n"
+    assert game_doc == expected_doc
+
+    error_response = {"error": "foo"}
+    mocker.patch.object(Apps, "get_app_details", return_value=error_response)
+    game_doc = steam_client.about_the_game(appid)
+    assert game_doc is None

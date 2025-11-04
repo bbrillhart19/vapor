@@ -12,6 +12,7 @@ def populate_neo4j(
     friends: bool = False,
     games: bool = False,
     genres: bool = False,
+    # game_descriptions: bool = False,
     limit: int | None = None,
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
@@ -52,7 +53,7 @@ def populate_neo4j(
     # Populate genres via all games
     if genres:
         logger.info("Populating genees from available Steam games...")
-        steam2neo4j.populate_genres(steam_client, neo4j_client, limit=limit)
+        steam2neo4j.populate_genres(steam_client, neo4j_client)
 
     logger.success("Completed Neo4j population sequence >>>")
 

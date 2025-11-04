@@ -128,7 +128,6 @@ def populate_games(
 def populate_genres(
     steam_client: clients.SteamClient,
     neo4j_client: clients.Neo4jClient,
-    limit: int | None = None,
 ) -> None:
     """Populate the neo4j database with genres for all games
     in the database.
@@ -138,11 +137,8 @@ def populate_genres(
             the SteamWebAPI.
         neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
             the Neo4j GraphDB.
-        limit (optional, int): Limit the amount of games to include
-            to populate genres for. If None, genres will be retrieved
-            for all games present in the database. Defaults to None.
     """
-    games_df = neo4j_client.get_all_games(limit=limit)
+    games_df = neo4j_client.get_all_games()
     total_games = len(games_df)
     logger.info(f"Found {total_games} total games to populate genres from.")
 
@@ -152,10 +148,8 @@ def populate_genres(
         description="Populating genres:",
         total=total_games,
     ):
-        game_details = steam_client.get_game_details(game.appid, filters=["genres"])
-        if "genres" not in game_details:
-            continue
-        neo4j_client.add_game_genres(game.appid, game_details["genres"])
+        genres = steam_client.get_game_genres(game.appid)
+        neo4j_client.add_game_genres(game.appid, genres)
 
 
 # def populate_game_descriptions(

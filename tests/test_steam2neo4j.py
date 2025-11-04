@@ -139,16 +139,16 @@ def test_populate_genres(
     neo4j_client._write(cypher, games=games)
 
     # Mock the steam client to return genres for each game
-    def mocked_game_details(appid: int, *args, **kwargs):
+    def mocked_game_genres(appid: int, *args, **kwargs):
         # Test no genres for the first game
         if appid == games[0]["appid"]:
-            return {}
-        return {"genres": steam_games[appid]["genres"]}
+            return []
+        return steam_games[appid]["genres"]
 
     mocker.patch.object(
         SteamClient,
-        "get_game_details",
-        side_effect=mocked_game_details,
+        "get_game_genres",
+        side_effect=mocked_game_genres,
     )
     # Run the genres population method
     steam2neo4j.populate_genres(steam_client, neo4j_client)
