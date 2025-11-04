@@ -307,7 +307,8 @@ class Neo4jClient(object):
         cypher = """
             MATCH (u:User {steamId: $steamid})
             UNWIND $games AS game
-            MERGE (g:Game {appId: game.appid, name: game.name})
+            MERGE (g:Game {appId: game.appid})
+            SET g.name = game.name
             MERGE (u)-[:OWNS_GAME {
                 playtime: game.playtime_forever
             }]->(g)
