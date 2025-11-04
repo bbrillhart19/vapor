@@ -52,13 +52,14 @@ def populate_neo4j(
     # Populate genres via all games
     if genres:
         logger.info("Populating genees from available Steam games...")
-        steam2neo4j.populate_genres(steam_client, neo4j_client)
+        steam2neo4j.populate_genres(steam_client, neo4j_client, limit=limit)
 
     logger.success("Completed Neo4j population sequence >>>")
 
 
 if __name__ == "__main__":
     import argparse
+    from vapor.utils import utils
 
     parser = argparse.ArgumentParser(
         description="Set up and populate neo4j database with steam data for Vapor"
@@ -115,6 +116,26 @@ if __name__ == "__main__":
         + " If None, all discovered datums will be included. Defaults to None.",
         default=None,
     )
+    parser.add_argument(
+        "-t",
+        "--game-descriptions",
+        type=int,
+        action="store_true",
+        help="Populate all game description texts from 'about_the_game'"
+        + " Requires prior initialized neo4j database with games."
+        + " Disabled by default.",
+    )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Use dev environment, i.e. use the neo4j-dev instance",
+    )
 
     args = parser.parse_args()
+
+    if args.dev:
+        logger.info("Setting development environment")
+        utils.set_dev_env()
+    args.__dict__.pop("dev")
+
     populate_neo4j(**args.__dict__)

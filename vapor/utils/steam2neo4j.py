@@ -1,5 +1,6 @@
 from rich.progress import track
 from loguru import logger
+from html2text import HTML2Text
 
 from vapor import clients
 
@@ -137,6 +138,9 @@ def populate_genres(
             the SteamWebAPI.
         neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
             the Neo4j GraphDB.
+        limit (optional, int): Limit the amount of games to include
+            to populate genres for. If None, genres will be retrieved
+            for all games present in the database. Defaults to None.
     """
     games_df = neo4j_client.get_all_games(limit=limit)
     total_games = len(games_df)
@@ -152,3 +156,25 @@ def populate_genres(
         if "genres" not in game_details:
             continue
         neo4j_client.add_game_genres(game.appid, game_details["genres"])
+
+
+# def populate_game_descriptions(
+#     steam_client: clients.SteamClient,
+#     neo4j_client: clients.Neo4jClient,
+#     limit: int | None = None,
+# ) -> None:
+#     """Populate the neo4j database with game descriptions for all games
+#     in the database.
+
+#         Args:
+#         steam_client (SteamClient): The `SteamClient` instance to query
+#             the SteamWebAPI.
+#         neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
+#             the Neo4j GraphDB.
+#         limit (optional, int): Limit the amount of games to include
+#             to populate genres for. If None, genres will be retrieved
+#             for all games present in the database. Defaults to None.
+#     """
+#     games_df = neo4j_client.get_all_games(limit=limit)
+#     total_games = len(games_df)
+#     logger.info(f"Found {total_games} total games to populate descriptions for.")

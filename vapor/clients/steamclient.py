@@ -153,7 +153,13 @@ class SteamClient(Steam):
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]
     ) -> dict[str, Any]:
-        """Get the details of a game with `appid` applied to the returned fields specified by `filters`. NOTE: The 'basic' filter will return a `genres` field."""
+        """Get the details of a game with `appid` applied to the
+        returned fields specified by `filters`.
+        NOTE: The 'basic' filter includes several fields that can only
+        be retrieved by using the 'basic' filter and getting all of them.
+        Other fields, such as 'genres', are optional and can be specified
+        individually.
+        """
         response = self._query_steam(
             self.apps.get_app_details, app_id=int(appid), filters=",".join(filters)
         )
