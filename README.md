@@ -1,12 +1,21 @@
-Vapor
--------
+<h1 align="center">Vapor</h1>
+<p align="center">
+    <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff"></a>
+    <a href="https://www.docker.com/"><img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff"></a>
+    <a href="https://neo4j.com/"><img alt="Neo4j" src="https://img.shields.io/badge/Neo4j-008CC1?logo=neo4j&logoColor=white"></a>
+    <a href="https://store.steampowered.com/"><img alt="Steam" src="https://img.shields.io/badge/Steam-%23000000.svg?logo=steam&logoColor=white"></a>
+    <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
+    <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
+</p>
 <p align="center">
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Coverage" src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bbrillhart19/6914181b8919f158adf1aeaca40bea63/raw/vapor-coverage.json"></a>
     <a href="https://github.com/bbrillhart19/vapor/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/bbrillhart19/vapor.svg"></a>
 </p>
 
-A (to-be) GraphRAG based video game recommendation system with Steam Web API and Neo4j.
+
+## About
+A (to-be) GraphRAG based video game recommendation system built on Steam data.
 
 ## Getting Started
 Before proceeding, clone the repository to your system.
@@ -15,7 +24,7 @@ Before proceeding, clone the repository to your system.
 - Python
 - Pip
 - [Docker](#docker-installation)
-- [Ollama]
+- [Ollama](#ollama)
 
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
@@ -56,6 +65,14 @@ The project uses open-source models with [Ollama](https://docs.ollama.com/) and 
 ollama pull embeddinggemma
 ```
 
+#### Reasoning (Cloud)
+*TODO: Script this and make it configurable.* Using cloud models specifically is what requires the Ollama account. Doing so allows the common person to use much larger open-source models, though there are limits for the free tier. Sign-in, pull and run, for example, `deepseek` with:
+```shell
+ollama signin
+ollama pull deepseek-v3.1:671b-cloud
+ollama run deepseek-v3.1:671b-cloud
+```
+
 ### Start Neo4j
 [Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
 ```shell
@@ -73,7 +90,7 @@ python vapor/populate.py -h
 ```
 To populate/setup for the first time, enable all populating commands like so:
 ```shell
-python vapor/populate.py -i -f -g -G
+python vapor/populate.py -i -f -g -G -t
 ```
 Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) and view the results. For example, to view the graph of Users and their "friendships":
 ```cypher
@@ -88,7 +105,11 @@ Refer to this section only if you are developing the codebase.
 - [ ] Use the Docker services for [development](#docker-development-containers)
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
-- [ ] TODO: CI/CD with Actions
+- [ ] Bump the [version](setup.py) with standard semantic versioning rules
+- [ ] Create a [PR](#https://github.com/bbrillhart19/vapor/pulls) as a draft
+- [ ] Trigger [CI/CD tests workflow](.github/workflows/test.yml) by marking the PR "Ready for review"
+- [ ] Merge the PR after review and required approvals
+- [ ] Create a [release](https://github.com/bbrillhart19/vapor/releases/) matching the updated version number
 
 ### Installation
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
@@ -97,10 +118,13 @@ pip install -e .[dev]
 ```
 
 ### Docker Development Container(s)
-To use services for development work, spin up with the `dev` compose file:
+To spin up a `neo4j` instance and populate with some data to experiment/debug with:
 ```shell
-docker compose -f compose.dev.yaml up -d
+bash scripts/dev-setup.sh
 ```
+You can view this `neo4j` instance in the browser at http://localhost:7475.
+
+**NOTE:** This database does not persist after the container exits, and also will be restarted (i.e. cleared) when running [unit tests](#unit-tests) locally. Fixing these limitations is a to-do item.
 
 ### Code Formatting
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
