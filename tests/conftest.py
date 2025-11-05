@@ -28,14 +28,17 @@ def steam_users() -> dict[str, dict]:
 
 
 @pytest.fixture(scope="function")
-def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
+def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[str]]:
     all_users = list(steam_users.keys())
-    friends_lists = {}
+    friends_lists = {steamid: [] for steamid in all_users}
     for steamid in steam_users:
         n_friends = random.randint(1, len(all_users))
-        friends_lists[steamid] = [
-            steam_users[u] for u in random.sample(all_users, k=n_friends)
-        ]
+        friends = random.sample(all_users, k=n_friends)
+        for friend in friends:
+            if friend not in friends_lists[steamid]:
+                friends_lists[steamid].append(friend)
+            if steamid not in friends_lists[friend]:
+                friends_lists[friend].append(steamid)
     return friends_lists
 
 

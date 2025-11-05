@@ -107,10 +107,14 @@ def test_get_all_users(neo4j_client: Neo4jClient, steam_users: dict[str, dict]):
         ].empty
 
 
-def test_add_friends(neo4j_client: Neo4jClient, steam_friends: dict[str, list[dict]]):
+def test_add_friends(
+    neo4j_client: Neo4jClient,
+    steam_friends: dict[str, list[str]],
+    steam_users: dict[str, dict],
+):
     """Tests the `add_friends` method for a single user"""
     # Add user and their friends
-    user_friends = steam_friends[globals.STEAM_ID]
+    user_friends = [steam_users[steamid] for steamid in steam_friends[globals.STEAM_ID]]
     neo4j_client.add_user(steamid=globals.STEAM_ID, personaname="user0")
     neo4j_client.add_friends(steamid=globals.STEAM_ID, friends=user_friends)
     # Check the friendship relationships exist
@@ -119,7 +123,6 @@ def test_add_friends(neo4j_client: Neo4jClient, steam_friends: dict[str, list[di
         RETURN f.steamId as steamid, f.personaName as personaname
     """
     result = neo4j_client._read(cypher, steamid=globals.STEAM_ID)
-    print(result.head())
     assert len(result) == len(user_friends)
     for expected_friend in user_friends:
         assert not result.loc[
@@ -216,4 +219,38 @@ def test_update_recently_played_games(
         assert not result.loc[
             (result["appid"] == expected_game["appid"])
             & (result["playtime"] == expected_game["playtime_2weeks"])
+        ].empty
+
+
+def test_add_game_descriptions(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
+    """Test adding game descriptions to `Game` nodes
+    with `add_game_descriptions` method
+    """
+    # Add some games
+    games = list(steam_games.values())[:2]
+    cypher = """
+        UNWIND $games as game
+        MERGE (g:Game {appId: game.appid, name: game.name})
+    """
+    neo4j_client._write(cypher, games=games)
+    # Create descriptions
+    mock_descs = [
+        {"appid": game["appid"], "about_the_game": f"This is game={game['appid']}"}
+        for game in games
+    ]
+    # Add the descriptions
+    neo4j_client.add_game_descriptions(mock_descs)
+    # Read descriptions and verify
+    # Verify expected descriptions
+    cypher = """
+        MATCH (g:Game {appId: $appid})
+        WHERE g.aboutTheGame IS NOT NULL
+        RETURN g.appId as appid, g.aboutTheGame as about_the_game
+    """
+    for game in games:
+        appid = game["appid"]
+        result = neo4j_client._read(cypher, appid=appid)
+        assert not result.loc[
+            (result["appid"] == appid)
+            & (result["about_the_game"] == f"This is game={appid}")
         ].empty

@@ -410,3 +410,24 @@ class Neo4jClient(object):
             }]->(g)
         """
         return self._write(update_cypher, steamid=steamid, games=validated_games)
+
+    def add_game_descriptions(self, descriptions: list[dict[str, Any]]):
+        """Add a game descriptions by setting the `about_the_game` property
+        for each `Game` node keyed by the `appid` of each element in the
+        `descriptions` list.
+
+        Args:
+            descriptions (list[dict[int, str]]): The list of `{appid: description}`
+                mappings to add to the database.
+        """
+        # Validate the descriptions
+        validated_descriptions = self._validate_node_fields(
+            nodes=descriptions, defaults={"appid": None, "about_the_game": None}
+        )
+        # Run cypher to unwind and set game descriptions
+        cypher = """
+            UNWIND $descriptions as description
+            MATCH (g:Game {appId: description.appid})
+            SET g.aboutTheGame = description.about_the_game
+        """
+        self._write(cypher, descriptions=validated_descriptions)

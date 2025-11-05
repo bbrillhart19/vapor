@@ -9,6 +9,7 @@ def test_populate_friends(
     mocker,
     steam_client: SteamClient,
     neo4j_client: Neo4jClient,
+    steam_users: dict[str, dict],
     steam_friends: dict[str, list[dict]],
 ):
     """Tests populating friends from Steam to Neo4j"""
@@ -16,12 +17,13 @@ def test_populate_friends(
     neo4j_client.setup_from_primary_user(steamid=globals.STEAM_ID, personaname="user0")
 
     # Mock the steam client to return friends per user
+    # Mock the steam client to return friends per user
     def mocked_friends(steamid: str, *args, **kwargs):
         friends = steam_friends[steamid]
         if "limit" in kwargs:
             friends = friends[: kwargs["limit"]]
-        for friend in friends:
-            yield friend
+        for friendid in friends:
+            yield steam_users[friendid]
 
     mocker.patch.object(
         SteamClient,
@@ -41,18 +43,22 @@ def test_populate_friends(
     result = neo4j_client._read(cypher)
     result_steamids = set(result["steamid"])
     expected_steamids = set(
-        x["steamid"] for x in steam_friends[globals.STEAM_ID][:limit]
+        friend_id for friend_id in steam_friends[globals.STEAM_ID][:limit]
     )
     assert not expected_steamids - result_steamids
     # Verify second hop friendships
+    # NOTE: It's important to use the -[]- bidirectional notation here
+    # to get both ends of each friendship
     cypher = """
-        MATCH (u:User {steamId: $steamid})-[:HAS_FRIEND]->(f:User)
+        MATCH (u:User {steamId: $steamid})-[:HAS_FRIEND]-(f:User)
         RETURN f.steamId as steamid
     """
     for steamid in expected_steamids:
         result = neo4j_client._read(cypher, steamid=steamid)
         result_steamids = set(result["steamid"])
-        _expected_steamids = set(x["steamid"] for x in steam_friends[steamid][:limit])
+        _expected_steamids = set(
+            friend_id for friend_id in steam_friends[steamid][:limit]
+        )
         assert not _expected_steamids - result_steamids
 
 
@@ -159,7 +165,7 @@ def test_populate_genres(
     """
     for i, game in enumerate(games):
         result = neo4j_client._read(cypher, appid=game["appid"])
-        # First game should not exists
+        # First game should not exist
         if i == 0:
             assert result.empty
             continue
@@ -168,3 +174,51 @@ def test_populate_genres(
                 (result["id"] == expected_genre["id"])
                 & (result["description"] == expected_genre["description"])
             ].empty
+
+
+def test_populate_game_descriptions(
+    mocker,
+    steam_client: SteamClient,
+    neo4j_client: Neo4jClient,
+    steam_games: dict[int, dict],
+):
+    """Tests populating game genres from Steam to Neo4j"""
+    # Add some games to populate genres from
+    limit = 2
+    games = list(steam_games.values())[:limit]
+    cypher = """
+        UNWIND $games as game
+        MERGE (g:Game {appId: game.appid})
+    """
+    neo4j_client._write(cypher, games=games)
+
+    # Mock the steam client to return description for each game
+    def mocked_game_description(appid: int, *args, **kwargs):
+        # Test no description for the first game
+        if appid == games[0]["appid"]:
+            return None
+        return f"Game Description for {appid}"
+
+    mocker.patch.object(
+        SteamClient,
+        "about_the_game",
+        side_effect=mocked_game_description,
+    )
+    # Run the game descriptions population method
+    steam2neo4j.populate_game_descriptions(steam_client, neo4j_client)
+    # Verify the expected descriptions
+    cypher = """
+        MATCH (g:Game {appId: $appid})
+        WHERE g.aboutTheGame IS NOT NULL
+        RETURN g.appId as appid, g.aboutTheGame as about_the_game
+    """
+    for i, game in enumerate(games):
+        result = neo4j_client._read(cypher, appid=game["appid"])
+        # First game should not exist
+        if i == 0:
+            assert result.empty
+            continue
+        assert not result.loc[
+            (result["appid"] == game["appid"])
+            & (result["about_the_game"] == f"Game Description for {game['appid']}")
+        ].empty

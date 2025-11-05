@@ -12,7 +12,7 @@ def populate_neo4j(
     friends: bool = False,
     games: bool = False,
     genres: bool = False,
-    # game_descriptions: bool = False,
+    game_descriptions: bool = False,
     limit: int | None = None,
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
@@ -54,6 +54,11 @@ def populate_neo4j(
     if genres:
         logger.info("Populating genees from available Steam games...")
         steam2neo4j.populate_genres(steam_client, neo4j_client)
+
+    # Populate game descriptions for all games
+    if game_descriptions:
+        logger.info("Populating game descriptions for available Steam games...")
+        steam2neo4j.populate_game_descriptions(steam_client, neo4j_client)
 
     logger.success("Completed Neo4j population sequence >>>")
 
@@ -120,7 +125,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--game-descriptions",
-        type=int,
         action="store_true",
         help="Populate all game description texts from 'about_the_game'"
         + " Requires prior initialized neo4j database with games."

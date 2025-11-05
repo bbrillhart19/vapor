@@ -40,7 +40,8 @@ def test_init_delete(mocker, neo4j_client: Neo4jClient):
 def test_populate(
     mocker,
     neo4j_client: Neo4jClient,
-    steam_friends: dict[str, list[dict]],
+    steam_users: dict[str, dict],
+    steam_friends: dict[str, list[str]],
     steam_games: dict[int, dict],
     steam_owned_games: dict[str, list[dict]],
 ):
@@ -72,8 +73,8 @@ def test_populate(
         friends = steam_friends[steamid]
         if "limit" in kwargs:
             friends = friends[: kwargs["limit"]]
-        for friend in friends:
-            yield friend
+        for friendid in friends:
+            yield steam_users[friendid]
 
     mocker.patch.object(
         SteamClient,
@@ -112,11 +113,27 @@ def test_populate(
         side_effect=mocked_game_genres,
     )
 
+    # Mock the steam client to return description for each game
+    def mocked_game_description(appid: int, *args, **kwargs):
+        return f"Game Description for {appid}"
+
+    mocker.patch.object(
+        SteamClient,
+        "about_the_game",
+        side_effect=mocked_game_description,
+    )
+
     # Set small limit for brevity
     limit = 2
     # Run the population sequence
     populate.populate_neo4j(
-        hops=2, init=True, friends=True, games=True, genres=True, limit=limit
+        hops=2,
+        init=True,
+        friends=True,
+        games=True,
+        genres=True,
+        game_descriptions=True,
+        limit=limit,
     )
 
     # Verify expected friendships (first hop=primary user)
@@ -127,19 +144,23 @@ def test_populate(
     result = neo4j_client._read(cypher)
     result_steamids = set(result["steamid"])
     expected_steamids = set(
-        x["steamid"] for x in steam_friends[globals.STEAM_ID][:limit]
+        friend_id for friend_id in steam_friends[globals.STEAM_ID][:limit]
     )
     assert not expected_steamids - result_steamids
 
     # Verify second hop friendships
+    # NOTE: It's important to use the -[]- bidirectional notation here
+    # to get both ends of each friendship
     cypher = """
-        MATCH (u:User {steamId: $steamid})-[:HAS_FRIEND]->(f:User)
+        MATCH (u:User {steamId: $steamid})-[:HAS_FRIEND]-(f:User)
         RETURN f.steamId as steamid
     """
     for steamid in expected_steamids:
         result = neo4j_client._read(cypher, steamid=steamid)
         result_steamids = set(result["steamid"])
-        _expected_steamids = set(x["steamid"] for x in steam_friends[steamid][:limit])
+        _expected_steamids = set(
+            friend_id for friend_id in steam_friends[steamid][:limit]
+        )
         assert not _expected_steamids - result_steamids
 
     # Verify the expected games relationships
@@ -152,8 +173,7 @@ def test_populate(
         MATCH (u:User {steamId: $steamid})-[r:RECENTLY_PLAYED]->(g:Game)
         RETURN g.appId as appid, g.name as name, r.recentPlaytime as playtime_2weeks
     """
-    for user in all_users.itertuples():
-        steamid = user.steamid
+    for steamid in all_users["steamid"]:
         expected_games = steam_owned_games[steamid][:limit]
         owned_result = neo4j_client._read(owned_games_cypher, steamid=steamid)
         recently_played_result = neo4j_client._read(
@@ -177,11 +197,24 @@ def test_populate(
         MATCH (g:Game {appId: $appid})-[:HAS_GENRE]->(n:Genre)
         RETURN n.genreId as id, n.description as description
     """
-    for game in all_games.itertuples():
-        result = neo4j_client._read(cypher, appid=game.appid)
-        expected_genres = steam_games[game.appid]["genres"]
+    for appid in all_games["appid"]:
+        result = neo4j_client._read(cypher, appid=appid)
+        expected_genres = steam_games[appid]["genres"]
         for expected_genre in expected_genres:
             assert not result.loc[
                 (result["id"] == expected_genre["id"])
                 & (result["description"] == expected_genre["description"])
             ].empty
+
+    # Verify expected descriptions
+    cypher = """
+        MATCH (g:Game {appId: $appid})
+        WHERE g.aboutTheGame IS NOT NULL
+        RETURN g.appId as appid, g.aboutTheGame as about_the_game
+    """
+    for appid in all_games["appid"]:
+        result = neo4j_client._read(cypher, appid=appid)
+        assert not result.loc[
+            (result["appid"] == appid)
+            & (result["about_the_game"] == f"Game Description for {appid}")
+        ].empty
