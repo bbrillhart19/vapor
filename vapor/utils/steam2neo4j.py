@@ -104,24 +104,22 @@ def populate_games(
     total_users = len(users_df)
     logger.info(f"Found {total_users} total users to populate games from.")
     # Iterate through each user and add their games
-    for user in track(
-        users_df.itertuples(),
-        description="Populating games:",
-        total=total_users,
+    for steamid in track(
+        users_df.steamid, description="Populating games:", total=total_users
     ):
         owned_games = list(
             steam_client.get_user_owned_games(
-                user.steamid, fields=owned_games_fields, limit=limit
+                steamid, fields=owned_games_fields, limit=limit
             )
         )
-        neo4j_client.add_owned_games(user.steamid, owned_games)
+        neo4j_client.add_owned_games(steamid, owned_games)
         recently_played_games = list(
             steam_client.get_user_recently_played_games(
-                user.steamid, fields=recently_played_fields, limit=limit
+                steamid, fields=recently_played_fields, limit=limit
             )
         )
         neo4j_client.update_recently_played_games(
-            steamid=user.steamid, games=recently_played_games
+            steamid=steamid, games=recently_played_games
         )
 
 
@@ -143,13 +141,11 @@ def populate_genres(
     logger.info(f"Found {total_games} total games to populate genres from.")
 
     # Iterate through each game, retrieve and add genres
-    for game in track(
-        games_df.itertuples(),
-        description="Populating genres:",
-        total=total_games,
+    for appid in track(
+        games_df.appid, description="Populating genres:", total=total_games
     ):
-        genres = steam_client.get_game_genres(game.appid)
-        neo4j_client.add_game_genres(game.appid, genres)
+        genres = steam_client.get_game_genres(appid)
+        neo4j_client.add_game_genres(appid, genres)
 
 
 def populate_game_descriptions(
