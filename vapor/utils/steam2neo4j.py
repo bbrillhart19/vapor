@@ -1,6 +1,5 @@
 from rich.progress import track
 from loguru import logger
-from html2text import HTML2Text
 
 from vapor import clients
 
