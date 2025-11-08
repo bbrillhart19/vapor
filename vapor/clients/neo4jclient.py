@@ -431,3 +431,55 @@ class Neo4jClient(object):
             SET g.aboutTheGame = description.about_the_game
         """
         self._write(cypher, descriptions=validated_descriptions)
+
+    def get_game_descriptions(self, games: list[dict[str, Any]]) -> pd.DataFrame:
+        """Retrieve the game descriptions from the `aboutTheGame`
+        attribute for the `Game` nodes in the `games` list.
+
+
+        Args:
+            games (list[dict[str, Any]]): The list of games each with
+                at least the parameter of `appid` to retrieve the
+                game descriptions for.
+
+        Returns:
+            pd.DataFrame: The result table with columns `appid` and
+                `about_the_game`. Games that do not have a description
+                will not be included in the table.
+        """
+        cypher = """
+            UNWIND $games as game
+            MATCH (g:Game {appId: game.appid})
+            WHERE g.aboutTheGame IS NOT NULL
+            RETURN g.appId as appid, g.aboutTheGame as about_the_game
+        """
+        return self._read(cypher, games=games)
+
+    def set_game_description_embeddings(self, appid: int, chunks: list[dict[str, Any]]):
+        remove_cypher = """
+            MATCH (g:Game {appId: $appid})-[:HAS_DESCRIPTION_CHUNK]->(n:DescriptionChunk)
+            DETACH DELETE n
+        """
+        self._write(remove_cypher, appid=appid)
+        validated_nodes = self._validate_node_fields(
+            nodes=chunks,
+            defaults={
+                "chunkid": None,
+                "source": appid,
+                "start_index": None,
+                "total_length": None,
+            },
+        )
+        logger.info(validated_nodes)
+        embed_cypher = """
+            MATCH (g:Game {appId: $appid})
+            UNWIND $chunks as chunk
+            MERGE (g)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk {
+                chunkId: chunk.chunk_id,
+                source: chunk.metadata.source,
+                startIndex: chunk.metadata.start_index,
+                totalLength: chunk.metadata.total_length,
+                embedding: chunk.embedding
+            })
+        """
+        self._write(embed_cypher, appid=appid, chunks=validated_nodes)
