@@ -456,11 +456,30 @@ class Neo4jClient(object):
         return self._read(cypher, games=games)
 
     def set_game_description_embeddings(self, appid: int, chunks: list[dict[str, Any]]):
+        """Creates the `HAS_DECRIPTION_CHUNK` relationship for the `Game`
+        node matching `appid` to each of the `chunks` which are assumed to
+        be chunks of text from the game's description. Each `chunk` item should have
+        an `"embedding"` attribute which represents the feature embedding vector
+        for the chunk of text.
+        NOTE: Any existing `HAS_DESCRIPTION_CHUNK` relationships for this `appid`
+        will be removed prior to adding the new relationships from the `chunks` list.
+
+        Args:
+            appid (int): The Steam app id number for the game
+                to add the game description chunk relationships too.
+            chunks (list[dict[str, Any]]): The list of chunks extracted
+                from the game description for this `appid` and embedded
+                with the vector stored in the `"embedding"` attribute
+                of each `chunk` item.
+
+        """
+        # Remove any existing chunks for this game
         remove_cypher = """
             MATCH (g:Game {appId: $appid})-[:HAS_DESCRIPTION_CHUNK]->(n:DescriptionChunk)
             DETACH DELETE n
         """
         self._write(remove_cypher, appid=appid)
+        # Validate the incoming chunk nodes
         validated_nodes = self._validate_node_fields(
             nodes=chunks,
             defaults={
@@ -468,17 +487,18 @@ class Neo4jClient(object):
                 "source": appid,
                 "start_index": None,
                 "total_length": None,
+                "embedding": None,
             },
         )
-        logger.info(validated_nodes)
+        # Add the chunk relationships and nodes
         embed_cypher = """
             MATCH (g:Game {appId: $appid})
             UNWIND $chunks as chunk
             MERGE (g)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk {
-                chunkId: chunk.chunk_id,
-                source: chunk.metadata.source,
-                startIndex: chunk.metadata.start_index,
-                totalLength: chunk.metadata.total_length,
+                chunkId: chunk.chunkid,
+                source: chunk.source,
+                startIndex: chunk.start_index,
+                totalLength: chunk.total_length,
                 embedding: chunk.embedding
             })
         """

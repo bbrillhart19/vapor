@@ -44,25 +44,23 @@ def generate_game_description_chunks(
     chunks = text_splitter.create_documents([text])
     # Iterate splits and yield content along with metadata
     for i, chunk in enumerate(chunks):
-        metadata = {
+        data = {
+            "text": chunk.page_content,
             "chunkid": f"{appid}-chunk{i}",
             "source": appid,
             "start_index": chunk.metadata["start_index"],
             "total_length": len(chunk.page_content),
         }
-        yield {"text": chunk.page_content, "metadata": metadata}
+        yield data
 
 
-def embed_game_descriptions(
-    neo4j_client: Neo4jClient,
-    **kwargs,
-) -> None:
+def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
     """Generate embeddings for chunks of text.
 
     Args:
         neo4j_client (Neo4jClient): The `Neo4jClient` for
             interaction with the Neo4j database.
-        **kwargs: Keyword arguments to apply to the `text_splitter`
+        **kwargs: Keyword arguments to apply to the `text_splitter`.
     """
     # Retrieve all games and their descriptions
     all_games = neo4j_client.get_all_games().to_dict("records")
