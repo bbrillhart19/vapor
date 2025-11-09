@@ -79,6 +79,11 @@ class Neo4jClient(object):
     def _set_genre_constraint(self) -> None:
         self._set_node_constraint("genre_constraint", "Genre", "genreId")
 
+    def _set_game_description_chunk_constraint(self) -> None:
+        self._set_node_constraint(
+            "game_description_chunk_constraint", "DescriptionChunk", "chunkId"
+        )
+
     def _get_constraints(self) -> pd.DataFrame:
         cypher = """SHOW CONSTRAINTS"""
         return self._read(cypher)
@@ -133,6 +138,7 @@ class Neo4jClient(object):
             "game_constraint",
             "user_constraint",
             "genre_constraint",
+            "game_description_chunk_constraint",
         }
         constraints = set(self._get_constraints()["name"])
         missing_constraints = required_constraints - constraints
@@ -156,6 +162,7 @@ class Neo4jClient(object):
         self._set_user_constraint()
         self._set_game_constraint()
         self._set_genre_constraint()
+        self._set_game_description_chunk_constraint()
 
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
@@ -187,6 +194,56 @@ class Neo4jClient(object):
         )
         self._detach_delete()
         self._remove_constraints()
+
+    def _set_vector_index(
+        self,
+        index_name: str,
+        node: str,
+        embedding_dimension: int,
+        similarity_function: str = "cosine",
+        embedding_key: str = "embedding",
+        timeout: int = 300,
+    ) -> None:
+        """Set up a vector index for the database.
+
+        Args:
+            index_name (str): The name of the vector index.
+            node (str): The node label of the nodes to index.
+            embedding_dimension (int): The length of the embedding vector.
+            similarity_function (str, optional): The similarity function to
+                index the embeddings by. Defaults to "cosine".
+            embedding_key (str, optional): The node attribute storing the embeddings.
+                Defaults to "embedding".
+            timeout (int, optional): Time to wait, in seconds, for the index
+                to come online after being set. Defaults to 300.
+        """
+        # Create the vector index on the nodes
+        cypher = """
+            CREATE VECTOR INDEX {0}
+                IF NOT EXISTS FOR (n:{1}) ON (n.{2})
+        """.format(
+            index_name, node, embedding_key
+        )
+        # NOTE: Splitting like this to avoid problems with f-strings and curly braces
+        cypher += """
+            OPTIONS {indexConfig: {
+                `vector.dimensions`: toInteger($dimension),
+                `vector.similarity_function`: UPPER($similarity_function)
+                }
+            }
+        """
+        self._write(
+            cypher,
+            dimension=embedding_dimension,
+            similarity_function=similarity_function,
+        )
+        # Wait for index to come online
+        await_cypher = """
+            CALL db.awaitIndex("{0}", {1})
+        """.format(
+            index_name, timeout
+        )
+        self._read(await_cypher)
 
     @staticmethod
     def _validate_node_fields(
@@ -503,3 +560,17 @@ class Neo4jClient(object):
             })
         """
         self._write(embed_cypher, appid=appid, chunks=validated_nodes)
+
+    def set_game_description_vector_index(
+        self, embedding_dimension: int, **kwargs
+    ) -> None:
+        """Sets up the vector index for all `DescriptionChunk`
+        nodes. Keyword arguments are the optional arguments in
+        `Neo4jClient._set_vector_index()`.
+        """
+        self._set_vector_index(
+            index_name="game_description_index",
+            node="DescriptionChunk",
+            embedding_dimension=embedding_dimension,
+            **kwargs,
+        )

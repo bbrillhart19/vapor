@@ -4,7 +4,7 @@ from rich.progress import track
 from loguru import logger
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vapor.models import EMBEDDING_MODEL as embedder
+from vapor import models
 from vapor.clients import Neo4jClient
 
 
@@ -62,11 +62,15 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
             interaction with the Neo4j database.
         **kwargs: Keyword arguments to apply to the `text_splitter`.
     """
+
     # Retrieve all games and their descriptions
     all_games = neo4j_client.get_all_games().to_dict("records")
     game_descriptions_df = neo4j_client.get_game_descriptions(all_games)
     total_games = len(game_descriptions_df)
     logger.info(f"Found {total_games} total game descriptions to embed.")
+
+    # Set embedding size
+    embedding_size = models.EMBEDDING_MODEL_PARAMS["embedding_size"]
     # Iterate over the descriptions, chunk, embed, and write
     for game in track(
         game_descriptions_df.itertuples(),
@@ -81,11 +85,14 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
             chunks.append(chunk)
 
         # Embed chunks
-        embeddings = embedder.embed_documents(texts)
+        embeddings = models.EMBEDDING_MODEL.embed_documents(texts)
         for i, chunk in enumerate(chunks):
             chunk["embedding"] = embeddings[i]
 
         # Add to neo4j
         neo4j_client.set_game_description_embeddings(game.appid, chunks)
 
-    # TODO: Set up vector index, unique chunk id constraint
+    # Set up vector index
+    logger.info("Setting up game description chunks vector index...")
+    neo4j_client.set_game_description_vector_index(embedding_dimension=embedding_size)
+    logger.success("Set up game description embeddings successfully.")

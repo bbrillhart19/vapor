@@ -1,5 +1,6 @@
 from langchain_ollama import OllamaEmbeddings
 
+from vapor import models
 from vapor.utils import model2neo4j
 from vapor.clients import Neo4jClient
 
@@ -29,7 +30,7 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     """Tests creating embeddings from game descriptions
     and writing to neo4j database
     """
-
+    # Create games w/ descriptions
     appid = 1000
     games = []
     for i in range(3):
@@ -37,7 +38,6 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
         games.append(
             {"appid": appid, "desc": f"This is a game description for {appid}"}
         )
-
     cypher = """
         UNWIND $games as game
         MERGE (g:Game {appId: game.appid})
@@ -45,8 +45,11 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     """
     neo4j_client._write(cypher, games=games)
 
+    # Set up mocks for embedding model
+    embedding_size = models.EMBEDDING_MODEL_PARAMS["embedding_size"]
+
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
-        return [[0.5] * 20] * len(texts)
+        return [[0.5] * embedding_size] * len(texts)
 
     mocker.patch.object(
         OllamaEmbeddings,
@@ -54,4 +57,28 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
         side_effect=mock_embed_docs,
     )
 
+    # Run the embedding process
     model2neo4j.embed_game_descriptions(neo4j_client)
+
+    # Check embeddings
+    cypher = """
+        MATCH (g:Game)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk)
+        RETURN 
+            g.appId as appid,
+            c.chunkId as chunk_id,
+            c.startIndex as start_index,
+            c.source as source,
+            c.totalLength as total_length,
+            c.embedding as embedding
+        """
+    result = neo4j_client._read(cypher)
+    for game in games:
+        appid = game["appid"]
+        rows = result.loc[result["appid"] == appid]
+        assert not rows.empty
+        for row in rows.itertuples():
+            assert isinstance(row.start_index, int)
+            assert row.chunk_id.startswith(str(row.appid))
+            assert row.source == appid
+            assert row.total_length > 0
+            assert len(row.embedding) == embedding_size
