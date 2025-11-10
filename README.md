@@ -90,12 +90,15 @@ python vapor/populate.py -h
 ```
 To populate/setup for the first time, enable all populating commands like so:
 ```shell
-python vapor/populate.py -i -f -g -G -t
+python vapor/populate.py -i -f -g -G -d --embed game-descriptions
 ```
+**NOTE:** There are currently some issues with rate limiting when populating data from Steam. This will be fixed in the future, but for now it is advisable to keep a small dataset using the `limit` argument, e.g. `python vapor/populate.py <args> -l 50` will limit the total amount of friends per user to 50, and the number of games per user to 50. This is usually sufficient to avoid errors with rate limiting. Alternatively, you can populate datatypes one a time, and take a break in between. This is still prone to rate limiting but will grab as much data as possible.
+
 Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) and view the results. For example, to view the graph of Users and their "friendships":
 ```cypher
 MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
 ```
+
 
 ## Development
 Refer to this section only if you are developing the codebase. 
