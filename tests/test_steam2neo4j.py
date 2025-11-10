@@ -1,10 +1,13 @@
 import os
 
+import pytest
+
 from vapor.clients import SteamClient, Neo4jClient
 from vapor.utils import steam2neo4j
 from helpers import globals
 
 
+@pytest.mark.neo4j
 def test_populate_friends(
     mocker,
     steam_client: SteamClient,
@@ -62,6 +65,7 @@ def test_populate_friends(
         assert not _expected_steamids - result_steamids
 
 
+@pytest.mark.neo4j
 def test_populate_games(
     mocker,
     steam_client: SteamClient,
@@ -128,6 +132,7 @@ def test_populate_games(
             ].empty
 
 
+@pytest.mark.neo4j
 def test_populate_genres(
     mocker,
     steam_client: SteamClient,
@@ -176,6 +181,7 @@ def test_populate_genres(
             ].empty
 
 
+@pytest.mark.neo4j
 def test_populate_game_descriptions(
     mocker,
     steam_client: SteamClient,

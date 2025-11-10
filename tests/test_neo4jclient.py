@@ -1,14 +1,17 @@
 import os
+import time
 
 import pytest
 import pandas as pd
+from neo4j import Driver
+from neo4j.exceptions import ServiceUnavailable
 
 from vapor.clients import Neo4jClient
-from vapor.clients.neo4jclient import NotFoundException
 
 from helpers import globals
 
 
+@pytest.mark.neo4j
 def test_neo4j_from_env(mocker):
     """Tests setting up `SteamClient` from env vars"""
     mocker.patch.dict(
@@ -23,6 +26,31 @@ def test_neo4j_from_env(mocker):
     client = Neo4jClient.from_env()
 
 
+def test_connection_failure(mocker):
+    """Tests the `Neo4jClient._wait_for_connection()` logic
+    when the service is unavailable. Successful connection
+    is covered by everything else using a `Neo4jClient`
+    """
+    # NOTE: We don't want use the fixture client here, we need to mock
+    # the functions first then initialize to test
+    # Test connection failure with ServiceUnavailable
+    mocker.patch.object(
+        Driver,
+        "verify_connectivity",
+        side_effect=ServiceUnavailable,
+    )
+    # TODO: Could use pytest-time instant sleep
+    with pytest.raises(ServiceUnavailable):
+        client = Neo4jClient(
+            uri="neo4j://test:1234",
+            auth=("test", "test"),
+            database="neo4j",
+            timeout=1,
+            sleep_duration=1,
+        )
+
+
+@pytest.mark.neo4j
 def test_io(neo4j_client: Neo4jClient):
     """Tests the `_write` and `_read` method(s) for the `Neo4jClient`"""
     cypher = """
@@ -38,6 +66,7 @@ def test_io(neo4j_client: Neo4jClient):
     assert result.iloc[0]["name"] == "test"
 
 
+@pytest.mark.neo4j
 def test_setup(neo4j_client: Neo4jClient):
     """Tests the setup process"""
     # No primary user yet, so this should be False
@@ -56,6 +85,7 @@ def test_setup(neo4j_client: Neo4jClient):
     assert neo4j_client.is_setup
 
 
+@pytest.mark.neo4j
 def test_validate_node_fields(neo4j_client: Neo4jClient):
     """Tests the `_validate_node_fields` helper method"""
     # Set up some dummy nodes with missing info
@@ -75,6 +105,7 @@ def test_validate_node_fields(neo4j_client: Neo4jClient):
     assert validated_nodes == expected
 
 
+@pytest.mark.neo4j
 def test_add_user(neo4j_client: Neo4jClient):
     """Tests the `add_user` method"""
     # Add a user
@@ -91,6 +122,7 @@ def test_add_user(neo4j_client: Neo4jClient):
     assert result.iloc[0]["personaname"] == "user0"
 
 
+@pytest.mark.neo4j
 def test_get_all_users(neo4j_client: Neo4jClient, steam_users: dict[str, dict]):
     """Tests `get_all_users` retrieval method"""
     # Add the steam users
@@ -107,6 +139,7 @@ def test_get_all_users(neo4j_client: Neo4jClient, steam_users: dict[str, dict]):
         ].empty
 
 
+@pytest.mark.neo4j
 def test_add_friends(
     neo4j_client: Neo4jClient,
     steam_friends: dict[str, list[str]],
@@ -131,6 +164,7 @@ def test_add_friends(
         ].empty
 
 
+@pytest.mark.neo4j
 def test_owned_games(
     neo4j_client: Neo4jClient, steam_owned_games: dict[str, list[dict]]
 ):
@@ -149,6 +183,7 @@ def test_owned_games(
         ].empty
 
 
+@pytest.mark.neo4j
 def test_get_all_games(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
     """Tests retrieving all games with `get_all_games` method"""
     # Add all the games
@@ -168,6 +203,7 @@ def test_get_all_games(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
         ].empty
 
 
+@pytest.mark.neo4j
 def test_add_game_genres(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
     """Tests add genres for all games with `add_game_genres` method"""
     # Add a game
@@ -192,6 +228,7 @@ def test_add_game_genres(neo4j_client: Neo4jClient, steam_games: dict[int, dict]
         ].empty
 
 
+@pytest.mark.neo4j
 def test_update_recently_played_games(
     neo4j_client: Neo4jClient, steam_owned_games: dict[str, list[dict]]
 ):
@@ -222,6 +259,7 @@ def test_update_recently_played_games(
         ].empty
 
 
+@pytest.mark.neo4j
 def test_add_game_descriptions(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
     """Test adding game descriptions to `Game` nodes
     with `add_game_descriptions` method

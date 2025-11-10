@@ -1,3 +1,4 @@
+import pytest
 from langchain_ollama import OllamaEmbeddings
 
 from vapor import models
@@ -21,11 +22,13 @@ def test_generate_chunks():
     )
     for i, chunk in enumerate(chunks):
         assert chunk["text"]
-        assert chunk["metadata"]
-        assert chunk["metadata"]["chunk_id"] == f"{appid}-chunk{i}"
-        assert chunk["metadata"]["source"] == appid
+        assert chunk["chunkid"] == f"{appid}-chunk{i}"
+        assert chunk["source"] == appid
+        assert isinstance(chunk["start_index"], int)
+        assert chunk["total_length"] > 0
 
 
+@pytest.mark.neo4j
 def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     """Tests creating embeddings from game descriptions
     and writing to neo4j database
@@ -46,7 +49,7 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     neo4j_client._write(cypher, games=games)
 
     # Set up mocks for embedding model
-    embedding_size = models.EMBEDDING_MODEL_PARAMS["embedding_size"]
+    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
 
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
         return [[0.5] * embedding_size] * len(texts)

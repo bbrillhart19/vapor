@@ -1,10 +1,14 @@
 import os
 
+import pytest
+from langchain_ollama import OllamaEmbeddings
+
 from vapor.clients import SteamClient, Neo4jClient
-from vapor import populate
+from vapor import populate, models
 from helpers import globals
 
 
+@pytest.mark.neo4j
 def test_init_delete(mocker, neo4j_client: Neo4jClient):
     """Tests the `populate_neo4j` entry point, setting up and immediately clearing"""
     # Patch env vars to dev values
@@ -37,6 +41,7 @@ def test_init_delete(mocker, neo4j_client: Neo4jClient):
     assert result.empty
 
 
+@pytest.mark.neo4j
 def test_populate(
     mocker,
     neo4j_client: Neo4jClient,
@@ -123,6 +128,18 @@ def test_populate(
         side_effect=mocked_game_description,
     )
 
+    # Set up mocks for embedding model
+    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
+
+    def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
+        return [[0.5] * embedding_size] * len(texts)
+
+    mocker.patch.object(
+        OllamaEmbeddings,
+        "embed_documents",
+        side_effect=mock_embed_docs,
+    )
+
     # Set small limit for brevity
     limit = 2
     # Run the population sequence
@@ -133,6 +150,7 @@ def test_populate(
         games=True,
         genres=True,
         game_descriptions=True,
+        embed=["game-descriptions"],
         limit=limit,
     )
 
@@ -218,3 +236,25 @@ def test_populate(
             (result["appid"] == appid)
             & (result["about_the_game"] == f"Game Description for {appid}")
         ].empty
+
+    # Verify embeddings
+    cypher = """
+        MATCH (g:Game)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk)
+        RETURN 
+            g.appId as appid,
+            c.chunkId as chunk_id,
+            c.startIndex as start_index,
+            c.source as source,
+            c.totalLength as total_length,
+            c.embedding as embedding
+        """
+    result = neo4j_client._read(cypher)
+    for appid in all_games["appid"]:
+        rows = result.loc[result["appid"] == appid]
+        assert not rows.empty, f"{appid}"
+        for row in rows.itertuples():
+            assert isinstance(row.start_index, int)
+            assert row.chunk_id.startswith(str(row.appid))
+            assert row.source == appid
+            assert row.total_length > 0
+            assert len(row.embedding) == embedding_size
