@@ -119,6 +119,60 @@ class Neo4jClient(object):
         cypher = """SHOW CONSTRAINTS"""
         return self._read(cypher)
 
+    def _set_vector_index(
+        self,
+        index_name: str,
+        node: str,
+        embedding_dimension: int,
+        similarity_function: str = "cosine",
+        embedding_key: str = "embedding",
+        timeout: int = 300,
+    ) -> None:
+        """Set up a vector index for the database.
+
+        Args:
+            index_name (str): The name of the vector index.
+            node (str): The node label of the nodes to index.
+            embedding_dimension (int): The length of the embedding vector.
+            similarity_function (str, optional): The similarity function to
+                index the embeddings by. Defaults to "cosine".
+            embedding_key (str, optional): The node attribute storing the embeddings.
+                Defaults to "embedding".
+            timeout (int, optional): Time to wait, in seconds, for the index
+                to come online after being set. Defaults to 300.
+        """
+        # Create the vector index on the nodes
+        cypher = """
+            CREATE VECTOR INDEX {0}
+                IF NOT EXISTS FOR (n:{1}) ON (n.{2})
+        """.format(
+            index_name, node, embedding_key
+        )
+        # NOTE: Splitting like this to avoid problems with f-strings and curly braces
+        cypher += """
+            OPTIONS {indexConfig: {
+                `vector.dimensions`: toInteger($dimension),
+                `vector.similarity_function`: UPPER($similarity_function)
+                }
+            }
+        """
+        self._write(
+            cypher,
+            dimension=embedding_dimension,
+            similarity_function=similarity_function,
+        )
+        # Wait for index to come online
+        await_cypher = """
+            CALL db.awaitIndex("{0}", {1})
+        """.format(
+            index_name, timeout
+        )
+        self._read(await_cypher)
+
+    def _get_vector_indexes(self) -> pd.DataFrame:
+        cypher = """SHOW VECTOR INDEXES"""
+        return self._read(cypher=cypher)
+
     def _set_primary_user(self, primary_steamid: str) -> None:
         """Set the primary user, i.e. central node, of the database.
         Assumes that the `User` node has already been added and will
@@ -207,6 +261,14 @@ class Neo4jClient(object):
         for constraint in self._get_constraints()["name"]:
             self._write(cypher, constraint=constraint)
 
+    def _remove_indexes(self) -> None:
+        """Remove all indexes (including vector indexes)"""
+        cypher = """
+            DROP INDEX $vector_index IF EXISTS
+        """
+        for vector_index in self._get_vector_indexes()["name"]:
+            self._write(cypher, vector_index=vector_index)
+
     def _detach_delete(self) -> None:
         """Remove all nodes and relationships from the graph"""
         cypher = """
@@ -220,61 +282,12 @@ class Neo4jClient(object):
         relationships, and constraints
         """
         logger.warning(
-            "Removing all nodes, relationships, and constraints from the graph!"
-            + " This action cannote be undone."
+            "Removing all nodes, relationships, and constraints, etc."
+            + " from the graph! This action cannote be undone."
         )
         self._detach_delete()
         self._remove_constraints()
-
-    def _set_vector_index(
-        self,
-        index_name: str,
-        node: str,
-        embedding_dimension: int,
-        similarity_function: str = "cosine",
-        embedding_key: str = "embedding",
-        timeout: int = 300,
-    ) -> None:
-        """Set up a vector index for the database.
-
-        Args:
-            index_name (str): The name of the vector index.
-            node (str): The node label of the nodes to index.
-            embedding_dimension (int): The length of the embedding vector.
-            similarity_function (str, optional): The similarity function to
-                index the embeddings by. Defaults to "cosine".
-            embedding_key (str, optional): The node attribute storing the embeddings.
-                Defaults to "embedding".
-            timeout (int, optional): Time to wait, in seconds, for the index
-                to come online after being set. Defaults to 300.
-        """
-        # Create the vector index on the nodes
-        cypher = """
-            CREATE VECTOR INDEX {0}
-                IF NOT EXISTS FOR (n:{1}) ON (n.{2})
-        """.format(
-            index_name, node, embedding_key
-        )
-        # NOTE: Splitting like this to avoid problems with f-strings and curly braces
-        cypher += """
-            OPTIONS {indexConfig: {
-                `vector.dimensions`: toInteger($dimension),
-                `vector.similarity_function`: UPPER($similarity_function)
-                }
-            }
-        """
-        self._write(
-            cypher,
-            dimension=embedding_dimension,
-            similarity_function=similarity_function,
-        )
-        # Wait for index to come online
-        await_cypher = """
-            CALL db.awaitIndex("{0}", {1})
-        """.format(
-            index_name, timeout
-        )
-        self._read(await_cypher)
+        self._remove_indexes()
 
     @staticmethod
     def _validate_node_fields(

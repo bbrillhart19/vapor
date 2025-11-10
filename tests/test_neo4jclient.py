@@ -292,3 +292,96 @@ def test_add_game_descriptions(neo4j_client: Neo4jClient, steam_games: dict[int,
             (result["appid"] == appid)
             & (result["about_the_game"] == f"This is game={appid}")
         ].empty
+
+
+@pytest.mark.neo4j
+def test_set_game_description_embeddings(neo4j_client: Neo4jClient):
+    """Tests creating `DescriptionChunk` nodes with embeddings"""
+    # Create a dummy embedding and make chunks
+    embedding = [0.5] * 20
+    n_chunks_per_game = 2
+    chunks: dict[int, list[dict]] = {}
+    for appid in range(1000, 1003):
+        chunks[appid] = []
+        # Make 2 chunks per game
+        for i in range(n_chunks_per_game):
+            chunks[appid].append(
+                {
+                    "text": "text",
+                    "chunkid": f"{appid}-chunk{i}",
+                    "source": appid,
+                    "start_index": len("text") * i,
+                    "total_length": len("text"),
+                    "embedding": embedding,
+                }
+            )
+
+    # Add games
+    games = [{"appid": appid} for appid in chunks]
+    cypher = """
+        UNWIND $games as game
+        MERGE (g:Game {appId: game.appid})
+    """
+    neo4j_client._write(cypher, games=games)
+
+    # Set the game description embeddings
+    for appid, _chunks in chunks.items():
+        neo4j_client.set_game_description_embeddings(appid, _chunks)
+
+    # Check embeddings ('text' key should not be present)
+    cypher = """
+        MATCH (g:Game)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk)
+        RETURN 
+            g.appId as appid,
+            c.text as text,
+            c.chunkId as chunkid,
+            c.startIndex as start_index,
+            c.source as source,
+            c.totalLength as total_length,
+            c.embedding as embedding
+        """
+    result = neo4j_client._read(cypher)
+    assert not result["text"].any()
+    for appid, _chunks in chunks.items():
+        rows = result.loc[result["appid"] == appid]
+        assert len(rows) == len(_chunks)
+        for row in rows.itertuples():
+            assert isinstance(row.start_index, int)
+            assert row.chunkid.startswith(str(row.appid))
+            assert row.source == appid
+            assert row.total_length > 0
+            assert len(row.embedding) == len(embedding)
+
+
+@pytest.mark.neo4j
+def test_set_vector_index(neo4j_client: Neo4jClient):
+    """Tests setting a vector index on a node parameter with `Neo4jClient`"""
+    neo4j_client._set_vector_index(
+        index_name="test",
+        node="Test",
+        embedding_dimension=10,
+    )
+    cypher = """SHOW VECTOR INDEXES"""
+    result = neo4j_client._read(cypher)
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["name"] == "test"
+    assert row.state == "ONLINE"
+    assert row.labelsOrTypes == ["Test"]
+    assert row.properties == ["embedding"]
+
+
+@pytest.mark.neo4j
+def test_set_game_description_vector_index(neo4j_client: Neo4jClient):
+    """Tests setting the game description vector index
+    on all `DescriptionChunk` nodes with `embedding` attribute
+    """
+    neo4j_client.set_game_description_vector_index(embedding_dimension=10)
+    cypher = """SHOW VECTOR INDEXES"""
+    result = neo4j_client._read(cypher)
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["name"] == "game_description_index"
+    assert row.state == "ONLINE"
+    assert row.labelsOrTypes == ["DescriptionChunk"]
+    assert row.properties == ["embedding"]
