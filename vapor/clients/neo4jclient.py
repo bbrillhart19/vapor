@@ -1,9 +1,11 @@
 from __future__ import annotations
 from typing import Any
 import warnings
+from time import sleep
 
 from loguru import logger
 from neo4j import GraphDatabase, RoutingControl, ExperimentalWarning
+from neo4j.exceptions import ServiceUnavailable
 import pandas as pd
 
 from vapor.utils import utils
@@ -19,13 +21,20 @@ class NotFoundException(Exception):
 class Neo4jClient(object):
     """Client to perform Cypher transactions to the Neo4j GraphDB"""
 
-    def __init__(self, uri: str, auth: tuple[str, str], database: str):
+    def __init__(
+        self,
+        uri: str,
+        auth: tuple[str, str],
+        database: str,
+        timeout: int = 60,
+        sleep_duration: int = 5,
+    ):
         """Initialize the client to connect to the database
         at `uri` with the `auth` combo of `(username, password)`
         """
         self.driver = GraphDatabase.driver(uri=uri, auth=auth)
         self._database = database
-        self.driver.verify_connectivity(database=self._database)
+        self._wait_for_connection(timeout, sleep_duration)
 
     @classmethod
     def from_env(cls) -> Neo4jClient:
@@ -38,6 +47,28 @@ class Neo4jClient(object):
             ),
             database=utils.get_env_var("NEO4J_DATABASE"),
         )
+
+    def _wait_for_connection(self, timeout: int = 60, sleep_duration: int = 5):
+        logger.info("Verifying Neo4j Connection >>>")
+        time_remaining = timeout
+        connected = False
+        while not connected and time_remaining > 0:
+            try:
+                # TODO: Figure out how to ignore the ERROR notification
+                # when this doesn't initially connect
+                self.driver.verify_connectivity(database=self._database)
+                connected = True
+            except ServiceUnavailable:
+                logger.warning(
+                    f"Connection attempt failed, time remaining={time_remaining}s"
+                )
+                sleep(sleep_duration)
+                time_remaining -= sleep_duration
+
+        if not connected:
+            logger.error("Timeout reached, Neo4j connection failed!")
+            raise ServiceUnavailable
+        logger.success("Successfully connected to Neo4j >>>")
 
     def _write(self, cypher: str, **kwargs) -> None:
         """Run the `cypher` query in 'write' mode"""

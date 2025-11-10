@@ -1,7 +1,7 @@
 from loguru import logger
 
-from vapor import clients
-from vapor.utils import steam2neo4j
+from vapor import clients, models
+from vapor.utils import steam2neo4j, model2neo4j
 
 
 @logger.catch
@@ -13,6 +13,7 @@ def populate_neo4j(
     games: bool = False,
     genres: bool = False,
     game_descriptions: bool = False,
+    embed: list[str] | None = None,
     limit: int | None = None,
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
@@ -59,6 +60,13 @@ def populate_neo4j(
     if game_descriptions:
         logger.info("Populating game descriptions for available Steam games...")
         steam2neo4j.populate_game_descriptions(steam_client, neo4j_client)
+
+    # Embed the game descriptions and set up vector index
+    if embed:
+        texts_to_embed = set(embed)
+        if "game-descriptions" in texts_to_embed:
+            logger.info("Embedding game descriptions and setting up vector index...")
+            model2neo4j.embed_game_descriptions(neo4j_client)
 
     logger.success("Completed Neo4j population sequence >>>")
 
@@ -123,13 +131,22 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "-t",
+        "-d",
         "--game-descriptions",
         action="store_true",
         help="Populate all game description texts from 'about_the_game'"
         + " Requires prior initialized neo4j database with games."
         + " Disabled by default.",
     )
+    parser.add_argument(
+        "--embed",
+        nargs="+",
+        choices=["game-descriptions"],
+        help="Texts to chunk and embed. Full texts must be"
+        + " populated in neo4j prior to embedding. The currently"
+        + f" configured OLLAMA_EMBEDDING_MODEL={models.OLLAMA_EMBEDDING_MODEL}",
+    )
+
     parser.add_argument(
         "--dev",
         action="store_true",

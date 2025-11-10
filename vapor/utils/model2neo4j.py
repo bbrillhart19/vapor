@@ -70,7 +70,7 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
     logger.info(f"Found {total_games} total game descriptions to embed.")
 
     # Set embedding size
-    embedding_size = models.EMBEDDING_MODEL_PARAMS["embedding_size"]
+    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
     # Iterate over the descriptions, chunk, embed, and write
     for game in track(
         game_descriptions_df.itertuples(),
@@ -85,7 +85,7 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
             chunks.append(chunk)
 
         # Embed chunks
-        embeddings = models.EMBEDDING_MODEL.embed_documents(texts)
+        embeddings = models.EMBEDDER.embed_documents(texts)
         for i, chunk in enumerate(chunks):
             chunk["embedding"] = embeddings[i]
 
