@@ -5,6 +5,11 @@ services:
     image: neo4j:2025.05.0
     environment:
       - NEO4J_AUTH=neo4j/neo4j-dev
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
     # Map to different ports than the production service
     ports:
       - 7475:7474
