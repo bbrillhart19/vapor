@@ -123,7 +123,7 @@ pip install -e .[dev]
 ### Docker Development Container(s)
 To spin up a `neo4j` instance and populate with some data to experiment/debug with:
 ```shell
-bash scripts/dev-setup.sh
+bash scripts/dev/setup.sh
 ```
 You can view this `neo4j` instance in the browser at http://localhost:7475.
 
@@ -138,5 +138,5 @@ black vapor tests
 ### Unit Tests
 A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
-bash scripts/run-tests.sh
+bash scripts/dev/run-tests.sh
 ```
