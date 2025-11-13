@@ -4,7 +4,7 @@ services:
   neo4j-dev:
     image: neo4j:2025.05.0
     environment:
-      - NEO4J_AUTH=neo4j/neo4j-dev
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true

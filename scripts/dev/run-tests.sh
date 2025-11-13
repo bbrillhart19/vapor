@@ -7,6 +7,6 @@ bash scripts/dev/quit.sh
 # Start up the services
 bash scripts/dev/start.sh &&
 # Run tests
-pytest --cov=vapor $test_args 
+VAPOR_ENV=dev.env pytest --cov=vapor $test_args 
 # Teardown services
 bash scripts/dev/quit.sh
