@@ -1,6 +1,7 @@
 from loguru import logger
 
-from vapor import clients, models
+from vapor import clients
+from vapor.models.embeddings import VaporEmbeddings
 from vapor.utils import steam2neo4j, model2neo4j
 
 
@@ -63,10 +64,13 @@ def populate_neo4j(
 
     # Embed the game descriptions and set up vector index
     if embed:
+        logger.info("Setting up embedding model...")
+        embedder = VaporEmbeddings.from_env()
+
         texts_to_embed = set(embed)
         if "game-descriptions" in texts_to_embed:
             logger.info("Embedding game descriptions and setting up vector index...")
-            model2neo4j.embed_game_descriptions(neo4j_client)
+            model2neo4j.embed_game_descriptions(embedder, neo4j_client)
 
     logger.success("Completed Neo4j population sequence >>>")
 
@@ -144,20 +148,10 @@ if __name__ == "__main__":
         choices=["game-descriptions"],
         help="Texts to chunk and embed. Full texts must be"
         + " populated in neo4j prior to embedding. The currently"
-        + f" configured OLLAMA_EMBEDDING_MODEL={models.OLLAMA_EMBEDDING_MODEL}",
-    )
-
-    parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="Use dev environment, i.e. use the neo4j-dev instance",
+        + " configured OLLAMA_EMBEDDING_MODEL="
+        + f"{utils.get_env_var('OLLAMA_EMBEDDING_MODEL', '!!!NONE FOUND!!!')}",
     )
 
     args = parser.parse_args()
-
-    if args.dev:
-        logger.info("Setting development environment")
-        utils.set_dev_env()
-    args.__dict__.pop("dev")
 
     populate_neo4j(**args.__dict__)

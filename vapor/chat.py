@@ -8,17 +8,17 @@ from vapor.clients import Neo4jClient
 from vapor.tools import GAME_TOOLS
 from vapor import VaporContext
 
-OLLAMA_LLM = utils.get_env_var("OLLAMA_LLM")
-
 
 @logger.catch
 def chat() -> None:
     # Setup neo4j client in dev mode
     logger.info("Setting development environment")
     utils.set_dev_env()
+
     logger.info("Initializing Neo4jClient...")
     neo4j_client = Neo4jClient.from_env()
 
+    OLLAMA_LLM = utils.get_env_var("OLLAMA_LLM")
     logger.info(f"Starting test with model={OLLAMA_LLM} >>>")
     context = VaporContext(neo4j_client=neo4j_client)
 
@@ -26,6 +26,7 @@ def chat() -> None:
         model=OLLAMA_LLM,
         validate_model_on_init=True,
         temperature=0.7,
+        num_ctx=16384,
     )
 
     prompt = """
@@ -47,14 +48,21 @@ def chat() -> None:
         system_prompt=prompt,
     )
 
-    human_msg = HumanMessage("Tell me about helldivers 2")
+    while True:
+        try:
+            msg = input("Ask a question:\n>>> ")
+            human_msg = HumanMessage(msg)
 
-    for event in agent.stream(
-        {"messages": [human_msg]},
-        context=context,
-        stream_mode="values",
-    ):
-        event["messages"][-1].pretty_print()
+            for event in agent.stream(
+                {"messages": [human_msg]},
+                context=context,
+                stream_mode="values",
+            ):
+                event["messages"][-1].pretty_print()
+            print()
+        except (KeyboardInterrupt, EOFError):
+            print("\nGoodbye!")
+            break
 
 
 if __name__ == "__main__":

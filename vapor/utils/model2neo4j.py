@@ -4,7 +4,7 @@ from rich.progress import track
 from loguru import logger
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vapor import models
+from vapor.models.embeddings import VaporEmbeddings
 from vapor.clients import Neo4jClient
 
 
@@ -54,23 +54,24 @@ def generate_game_description_chunks(
         yield data
 
 
-def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
+def embed_game_descriptions(
+    embedder: VaporEmbeddings, neo4j_client: Neo4jClient, **kwargs
+) -> None:
     """Generate embeddings for chunks of text.
 
     Args:
+        embedder (VaporEmbeddings): The `VaporEmbeddings` embedding model
+            to use to generate document embeddings.
         neo4j_client (Neo4jClient): The `Neo4jClient` for
             interaction with the Neo4j database.
         **kwargs: Keyword arguments to apply to the `text_splitter`.
     """
-
     # Retrieve all games and their descriptions
     all_games = neo4j_client.get_all_games().to_dict("records")
     game_descriptions_df = neo4j_client.get_game_descriptions(all_games)
     total_games = len(game_descriptions_df)
     logger.info(f"Found {total_games} total game descriptions to embed.")
 
-    # Set embedding size
-    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
     # Iterate over the descriptions, chunk, embed, and write
     for game in track(
         game_descriptions_df.itertuples(),
@@ -85,7 +86,7 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
             chunks.append(chunk)
 
         # Embed chunks
-        embeddings = models.EMBEDDER.embed_documents(texts)
+        embeddings = embedder.embed_documents(texts)
         for i, chunk in enumerate(chunks):
             chunk["embedding"] = embeddings[i]
 
@@ -94,5 +95,7 @@ def embed_game_descriptions(neo4j_client: Neo4jClient, **kwargs) -> None:
 
     # Set up vector index
     logger.info("Setting up game description chunks vector index...")
-    neo4j_client.set_game_description_vector_index(embedding_dimension=embedding_size)
+    neo4j_client.set_game_description_vector_index(
+        embedding_dimension=embedder.embedding_size
+    )
     logger.success("Set up game description embeddings successfully.")

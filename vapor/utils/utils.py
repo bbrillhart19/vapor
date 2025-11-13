@@ -31,10 +31,3 @@ def set_env(env_mapping: dict[str, Any]) -> None:
     """
     for k, v in env_mapping.items():
         os.environ[k] = v
-
-
-def set_dev_env() -> None:
-    """Overrides specific environment variables to use values
-    hardcoded for dev instances of external services/resources.
-    """
-    set_env({"NEO4J_URI": "neo4j://localhost:7688", "NEO4J_PW": "neo4j-dev"})
