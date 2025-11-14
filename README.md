@@ -15,7 +15,7 @@
 
 
 ## About
-A (to-be) GraphRAG based video game recommendation system built on Steam data.
+A personalized AI chat companion for gamers built on Steam data and GraphRAG.
 
 ## Getting Started
 Before proceeding, clone the repository to your system.
@@ -99,6 +99,12 @@ Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) an
 MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
 ```
 
+### Chat
+To start a chat with your configured LLM (see the `.env` file you created during [setup](#setup-environment)):
+```shell
+python vapor/chat.py
+```
+Then you can ask questions about the Steam data. Currently, this has very limited tooling support
 
 ## Development
 Refer to this section only if you are developing the codebase. 
@@ -115,12 +121,28 @@ Refer to this section only if you are developing the codebase.
 - [ ] Create a [release](https://github.com/bbrillhart19/vapor/releases/) matching the updated version number
 
 ### Installation
+#### Vapor Development Package
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
 pip install -e .[dev]
 ```
-
-### Docker Development Container(s)
+#### Development Environment
+Create a development environment file from the `.env` file created in [setup](#setup-environment):
+```shell
+cp .env dev.env
+```
+And make the following changes to ensure a develop environment that:
+1. Will not conflict with production services:
+```bash
+NEO4J_URI=neo4j://localhost:7688
+```
+2. Will use a local model that is runnable on most devices (and not use limited cloud resources):
+```bash
+OLLAMA_LLM=granite4:micro-h
+```
+***TODO: Create a script to do this automatically, along with the production setup***
+### General Development Usage
+#### Docker Development Container(s)
 To spin up a `neo4j` instance and populate with some data to experiment/debug with:
 ```shell
 bash scripts/dev/setup.sh
@@ -128,6 +150,14 @@ bash scripts/dev/setup.sh
 You can view this `neo4j` instance in the browser at http://localhost:7475.
 
 **NOTE:** This database does not persist after the container exits, and also will be restarted (i.e. cleared) when running [unit tests](#unit-tests) locally. Fixing these limitations is a to-do item.
+
+#### Commands with Development Environment
+If you wish to run `vapor` commands in development mode, ensure you point `vapor` to your [dev environment file](#development-environment) prior to running commands. For example:
+```shell
+VAPOR_ENV=dev.env python vapor/chat.py
+```
+
+
 
 ### Code Formatting
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
@@ -140,3 +170,5 @@ A convenience script has been set up to launch the [development services](#docke
 ```shell
 bash scripts/dev/run-tests.sh
 ```
+
+
