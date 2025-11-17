@@ -2,8 +2,9 @@ import random
 from typing import Generator
 
 import pytest
+from langchain.tools import ToolRuntime
 
-from vapor.utils import utils
+from vapor._types import VaporContext
 from vapor.clients import Neo4jClient, SteamClient
 
 from helpers import globals
@@ -95,3 +96,20 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
     )
     yield client
     client.clear()
+
+
+@pytest.fixture(scope="function")
+def vapor_ctx(neo4j_client: Neo4jClient) -> VaporContext:
+    return VaporContext(neo4j_client=neo4j_client)
+
+
+@pytest.fixture(scope="function")
+def tool_runtime(vapor_ctx: VaporContext) -> ToolRuntime[VaporContext]:
+    return ToolRuntime(
+        context=vapor_ctx,
+        config={},
+        stream_writer=lambda x: None,
+        state={"messages": []},
+        store=None,
+        tool_call_id="test_call_id",
+    )

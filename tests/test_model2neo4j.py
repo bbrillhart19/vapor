@@ -1,7 +1,7 @@
 import pytest
 from langchain_ollama import OllamaEmbeddings
 
-from vapor import models
+from vapor.models import embeddings
 from vapor.utils import model2neo4j
 from vapor.clients import Neo4jClient
 
@@ -49,7 +49,9 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     neo4j_client._write(cypher, games=games)
 
     # Set up mocks for embedding model
-    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
+    embedding_size = embeddings.EMBEDDING_PARAMS[
+        embeddings.DEFAULT_OLLAMA_EMBEDDING_MODEL
+    ]["embedding_size"]
 
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
         return [[0.5] * embedding_size] * len(texts)
@@ -61,7 +63,10 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     )
 
     # Run the embedding process
-    model2neo4j.embed_game_descriptions(neo4j_client)
+    model2neo4j.embed_game_descriptions(
+        embedder=embeddings.VaporEmbeddings.from_env(),
+        neo4j_client=neo4j_client,
+    )
 
     # Check embeddings
     cypher = """

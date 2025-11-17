@@ -385,3 +385,35 @@ def test_set_game_description_vector_index(neo4j_client: Neo4jClient):
     assert row.state == "ONLINE"
     assert row.labelsOrTypes == ["DescriptionChunk"]
     assert row.properties == ["embedding"]
+
+
+def test_search_game_by_name(neo4j_client: Neo4jClient):
+    """Tests searching `neo4j` by game names, which potentially
+    are not an exact match to actual application names
+    """
+    appid = 1000
+    actual_name = "Test Game II"
+    search_name = "test game"
+    # No games present, should return empty
+    result = neo4j_client.search_game_by_name(search_name)
+    assert result.empty
+
+    # Add the test game with actual_name, should return a single match
+    cypher = """
+        MERGE (g:Game {appId: $appid, name: $name})
+    """
+    neo4j_client._write(cypher, appid=appid, name=actual_name)
+    result = neo4j_client.search_game_by_name(search_name)
+    assert len(result) == 1
+    assert result.iloc[0]["appid"] == appid
+    assert result.iloc[0]["name"] == actual_name
+    assert "distance" in result.columns
+
+    # Add an additional game that should be a better match
+    actual_name2 = "Test Game"
+    neo4j_client._write(cypher, appid=appid + 1, name=actual_name2)
+    result = neo4j_client.search_game_by_name(search_name)
+    assert len(result) == 2
+    assert result.iloc[0]["appid"] == appid + 1
+    assert result.iloc[0]["name"] == actual_name2
+    assert result.iloc[0]["distance"] < result.iloc[1]["distance"]

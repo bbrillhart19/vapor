@@ -4,7 +4,8 @@ import pytest
 from langchain_ollama import OllamaEmbeddings
 
 from vapor.clients import SteamClient, Neo4jClient
-from vapor import populate, models
+from vapor import populate
+from vapor.models import embeddings
 from helpers import globals
 
 
@@ -129,7 +130,9 @@ def test_populate(
     )
 
     # Set up mocks for embedding model
-    embedding_size = models.EMBEDDER_PARAMS["embedding_size"]
+    embedding_size = embeddings.EMBEDDING_PARAMS[
+        embeddings.DEFAULT_OLLAMA_EMBEDDING_MODEL
+    ]["embedding_size"]
 
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
         return [[0.5] * embedding_size] * len(texts)

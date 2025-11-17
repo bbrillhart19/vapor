@@ -632,8 +632,8 @@ class Neo4jClient(object):
             pd.DataFrame: The table of matched games, with "appid"
                 and "name" values. If no game is found, this table will
                 be empty. If multiple matches are found,
-                they will be sorted in descending order of their
-                Levenshtein distances.
+                they will be sorted in ascending order of their
+                Levenshtein distances, best match will be the first row.
         """
         cypher = """
             WITH apoc.text.clean($name) as clean_name

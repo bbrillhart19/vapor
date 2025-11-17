@@ -43,25 +43,3 @@ def test_set_env():
     assert os.environ["TEST_VAR"] == "test"
     # Pop to reset
     os.environ.pop("TEST_VAR")
-
-
-def test_set_dev_env():
-    """Tests setting the environment variables for dev environment"""
-    # Store current values
-    current = {}
-    for k in ["NEO4J_URI", "NEO4J_PW"]:
-        if k in os.environ:
-            current[k] = os.environ[k]
-        else:
-            current[k] = None
-    # Test setting the dev environment
-    utils.set_dev_env()
-    # Check vars
-    assert os.environ["NEO4J_URI"] == globals.NEO4J_URI
-    assert os.environ["NEO4J_PW"] == globals.NEO4J_PW
-    # Reset values
-    for k, v in current.items():
-        if v is not None:
-            os.environ[k] = v
-        else:
-            os.environ.pop(k)
