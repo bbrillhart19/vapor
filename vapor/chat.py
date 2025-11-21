@@ -10,7 +10,20 @@ from vapor.models.prompts import load_prompt
 from vapor import VaporContext
 
 
-@logger.catch
+def handle_chat(agent: CompiledStateGraph, context: VaporContext) -> None:
+    """Helper method to handle user chat questions"""
+    msg = input("\nAsk a question:\n>>> ")
+    human_msg = HumanMessage(msg)
+
+    for event in agent.stream(
+        {"messages": [human_msg]},
+        context=context,
+        stream_mode="values",
+    ):
+        event["messages"][-1].pretty_print()
+
+
+@logger.catch(reraise=True)
 def chat() -> None:
     """Opens a chat loop with Vapor's AI model serviced by Ollama"""
     logger.info("Initializing Neo4jClient...")
@@ -35,15 +48,7 @@ def chat() -> None:
 
     while True:
         try:
-            msg = input("\nAsk a question:\n>>> ")
-            human_msg = HumanMessage(msg)
-
-            for event in agent.stream(
-                {"messages": [human_msg]},
-                context=context,
-                stream_mode="values",
-            ):
-                event["messages"][-1].pretty_print()
+            handle_chat(agent, context)
         except (KeyboardInterrupt, EOFError):
             print("\nGoodbye!")
             break
