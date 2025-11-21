@@ -5,7 +5,7 @@ from vapor.models.embeddings import VaporEmbeddings
 from vapor.utils import steam2neo4j, model2neo4j
 
 
-@logger.catch
+@logger.catch(reraise=True)
 def populate_neo4j(
     hops: int = 2,
     init: bool = False,
