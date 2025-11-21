@@ -26,7 +26,7 @@ class VaporEmbeddings(OllamaEmbeddings):
         model = utils.get_env_var(
             "OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL
         )
-        return cls(model=model, validate_model_on_init=True, **kwargs)
+        return cls(model=model, **kwargs)
 
     def _get_param(self, param: str) -> Any:
         return EMBEDDING_PARAMS[self.model][param]

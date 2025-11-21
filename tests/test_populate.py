@@ -139,6 +139,12 @@ def test_populate(
 
     mocker.patch.object(
         OllamaEmbeddings,
+        "_set_clients",
+        return_value=None,
+    )
+
+    mocker.patch.object(
+        OllamaEmbeddings,
         "embed_documents",
         side_effect=mock_embed_docs,
     )

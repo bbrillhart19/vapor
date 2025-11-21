@@ -12,4 +12,4 @@ class VaporLLM(ChatOllama):
     @classmethod
     def from_env(cls, **kwargs) -> VaporLLM:
         model = utils.get_env_var("OLLAMA_LLM", DEFAULT_OLLAMA_LLM)
-        return cls(model=model, validate_model_on_init=True, **kwargs)
+        return cls(model=model, **kwargs)
