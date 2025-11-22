@@ -103,52 +103,76 @@ def populate_games(
     total_users = len(users_df)
     logger.info(f"Found {total_users} total users to populate games from.")
     # Iterate through each user and add their games
-    for user in track(
-        users_df.itertuples(),
-        description="Populating games:",
-        total=total_users,
+    for steamid in track(
+        users_df.steamid, description="Populating games:", total=total_users
     ):
         owned_games = list(
             steam_client.get_user_owned_games(
-                user.steamid, fields=owned_games_fields, limit=limit
+                steamid, fields=owned_games_fields, limit=limit
             )
         )
-        neo4j_client.add_owned_games(user.steamid, owned_games)
+        neo4j_client.add_owned_games(steamid, owned_games)
         recently_played_games = list(
             steam_client.get_user_recently_played_games(
-                user.steamid, fields=recently_played_fields, limit=limit
+                steamid, fields=recently_played_fields, limit=limit
             )
         )
         neo4j_client.update_recently_played_games(
-            steamid=user.steamid, games=recently_played_games
+            steamid=steamid, games=recently_played_games
         )
 
 
 def populate_genres(
     steam_client: clients.SteamClient,
     neo4j_client: clients.Neo4jClient,
-    limit: int | None = None,
 ) -> None:
     """Populate the neo4j database with genres for all games
     in the database.
 
-        Args:
+    Args:
         steam_client (SteamClient): The `SteamClient` instance to query
             the SteamWebAPI.
         neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
             the Neo4j GraphDB.
     """
-    games_df = neo4j_client.get_all_games(limit=limit)
+    games_df = neo4j_client.get_all_games()
     total_games = len(games_df)
     logger.info(f"Found {total_games} total games to populate genres from.")
 
-    # Iterate through each game, retrieve details and add genres
-    for game in track(
-        games_df.itertuples(),
-        description="Populating genres:",
-        total=total_games,
+    # Iterate through each game, retrieve and add genres
+    for appid in track(
+        games_df.appid, description="Populating genres:", total=total_games
     ):
-        game_details = steam_client.get_game_details(game.appid, filters=["genres"])
-        if "genres" not in game_details:
-            continue
-        neo4j_client.add_game_genres(game.appid, game_details["genres"])
+        genres = steam_client.get_game_genres(appid)
+        neo4j_client.add_game_genres(appid, genres)
+
+
+def populate_game_descriptions(
+    steam_client: clients.SteamClient,
+    neo4j_client: clients.Neo4jClient,
+) -> None:
+    """Populate the neo4j database with game descriptions for all games
+    in the database.
+
+    Args:
+        steam_client (SteamClient): The `SteamClient` instance to query
+            the SteamWebAPI.
+        neo4j_client (Neo4jClient): The `Neo4jClient` instance to query
+            the Neo4j GraphDB.
+    """
+    games_df = neo4j_client.get_all_games()
+    total_games = len(games_df)
+    logger.info(f"Found {total_games} total games to populate descriptions for.")
+
+    descriptions = []
+    # Iterate through each game, retrieve description
+    for appid in track(
+        games_df.appid, description="Retrieving descriptions:", total=total_games
+    ):
+        game_doc = steam_client.about_the_game(appid)
+        if game_doc is not None:
+            descriptions.append({"appid": appid, "about_the_game": game_doc})
+
+    # Add descriptions in batch
+    logger.info(f"Adding {len(descriptions)} total game desriptions...")
+    neo4j_client.add_game_descriptions(descriptions)

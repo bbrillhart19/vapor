@@ -17,6 +17,9 @@ setup(
         "dotenv",
         "pandas",
         "loguru",
+        "langchain",
+        "langchain-ollama",
+        "langchain-text-splitters",
     ],
     extras_require={
         "dev": [

@@ -1,5 +1,6 @@
 """Miscellaneous utility methods"""
 
+from typing import Any
 import os
 
 
@@ -22,3 +23,11 @@ def get_env_var(env_key: str, default: str | None = None) -> str:
     if default is None:
         raise KeyError(f"{env_key} not found in env and no default provided.")
     return default
+
+
+def set_env(env_mapping: dict[str, Any]) -> None:
+    """Overrides specific environment variables to use values
+    as supplied by `env_mapping`.
+    """
+    for k, v in env_mapping.items():
+        os.environ[k] = v

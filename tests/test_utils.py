@@ -3,6 +3,7 @@ import os
 import pytest
 
 from vapor.utils import utils
+from helpers import globals
 
 
 def test_get_env_var(mocker):
@@ -32,3 +33,13 @@ def test_get_env_var(mocker):
     # With default, should return the default value
     test_var = utils.get_env_var("TEST_VAR", "foo")
     assert test_var == "foo"
+
+
+def test_set_env():
+    """Tests setting environment variables from mapping"""
+    # Create dummy mapping and set
+    utils.set_env({"TEST_VAR": "test"})
+    # Check vars
+    assert os.environ["TEST_VAR"] == "test"
+    # Pop to reset
+    os.environ.pop("TEST_VAR")

@@ -1,10 +1,11 @@
 from loguru import logger
 
 from vapor import clients
-from vapor.utils import steam2neo4j
+from vapor.models.embeddings import VaporEmbeddings
+from vapor.utils import steam2neo4j, model2neo4j
 
 
-@logger.catch
+@logger.catch(reraise=True)
 def populate_neo4j(
     hops: int = 2,
     init: bool = False,
@@ -12,6 +13,8 @@ def populate_neo4j(
     friends: bool = False,
     games: bool = False,
     genres: bool = False,
+    game_descriptions: bool = False,
+    embed: list[str] | None = None,
     limit: int | None = None,
 ) -> None:
     """Entry point to populate data. Initializes steam/neo4j from env vars."""
@@ -54,11 +57,27 @@ def populate_neo4j(
         logger.info("Populating genees from available Steam games...")
         steam2neo4j.populate_genres(steam_client, neo4j_client)
 
+    # Populate game descriptions for all games
+    if game_descriptions:
+        logger.info("Populating game descriptions for available Steam games...")
+        steam2neo4j.populate_game_descriptions(steam_client, neo4j_client)
+
+    # Embed the game descriptions and set up vector index
+    if embed:
+        logger.info("Setting up embedding model...")
+        embedder = VaporEmbeddings.from_env()
+
+        texts_to_embed = set(embed)
+        if "game-descriptions" in texts_to_embed:
+            logger.info("Embedding game descriptions and setting up vector index...")
+            model2neo4j.embed_game_descriptions(embedder, neo4j_client)
+
     logger.success("Completed Neo4j population sequence >>>")
 
 
 if __name__ == "__main__":
     import argparse
+    from vapor.utils import utils
 
     parser = argparse.ArgumentParser(
         description="Set up and populate neo4j database with steam data for Vapor"
@@ -115,6 +134,24 @@ if __name__ == "__main__":
         + " If None, all discovered datums will be included. Defaults to None.",
         default=None,
     )
+    parser.add_argument(
+        "-d",
+        "--game-descriptions",
+        action="store_true",
+        help="Populate all game description texts from 'about_the_game'"
+        + " Requires prior initialized neo4j database with games."
+        + " Disabled by default.",
+    )
+    parser.add_argument(
+        "--embed",
+        nargs="+",
+        choices=["game-descriptions"],
+        help="Texts to chunk and embed. Full texts must be"
+        + " populated in neo4j prior to embedding. The currently"
+        + " configured OLLAMA_EMBEDDING_MODEL="
+        + f"{utils.get_env_var('OLLAMA_EMBEDDING_MODEL', '!!!NONE FOUND!!!')}",
+    )
 
     args = parser.parse_args()
+
     populate_neo4j(**args.__dict__)

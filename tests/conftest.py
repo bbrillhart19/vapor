@@ -2,8 +2,9 @@ import random
 from typing import Generator
 
 import pytest
+from langchain.tools import ToolRuntime
 
-from vapor.utils import utils
+from vapor._types import VaporContext
 from vapor.clients import Neo4jClient, SteamClient
 
 from helpers import globals
@@ -28,14 +29,17 @@ def steam_users() -> dict[str, dict]:
 
 
 @pytest.fixture(scope="function")
-def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[dict]]:
+def steam_friends(steam_users: dict[str, dict]) -> dict[str, list[str]]:
     all_users = list(steam_users.keys())
-    friends_lists = {}
+    friends_lists = {steamid: [] for steamid in all_users}
     for steamid in steam_users:
         n_friends = random.randint(1, len(all_users))
-        friends_lists[steamid] = [
-            steam_users[u] for u in random.sample(all_users, k=n_friends)
-        ]
+        friends = random.sample(all_users, k=n_friends)
+        for friend in friends:
+            if friend not in friends_lists[steamid]:
+                friends_lists[steamid].append(friend)
+            if steamid not in friends_lists[friend]:
+                friends_lists[friend].append(steamid)
     return friends_lists
 
 
@@ -92,3 +96,20 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
     )
     yield client
     client.clear()
+
+
+@pytest.fixture(scope="function")
+def vapor_ctx(neo4j_client: Neo4jClient) -> VaporContext:
+    return VaporContext(neo4j_client=neo4j_client)
+
+
+@pytest.fixture(scope="function")
+def tool_runtime(vapor_ctx: VaporContext) -> ToolRuntime[VaporContext]:
+    return ToolRuntime(
+        context=vapor_ctx,
+        config={},
+        stream_writer=lambda x: None,
+        state={"messages": []},
+        store=None,
+        tool_call_id="test_call_id",
+    )
