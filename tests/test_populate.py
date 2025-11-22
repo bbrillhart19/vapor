@@ -130,6 +130,9 @@ def test_populate(
     )
 
     # Set up mocks for embedding model
+    # NOTE: Using environment params directly here
+    # rather than "foo" model, populate method
+    # will initialize using from_env()
     embedding_size = embeddings.EMBEDDING_PARAMS[
         embeddings.DEFAULT_OLLAMA_EMBEDDING_MODEL
     ]["embedding_size"]
@@ -138,13 +141,7 @@ def test_populate(
         return [[0.5] * embedding_size] * len(texts)
 
     mocker.patch.object(
-        OllamaEmbeddings,
-        "_set_clients",
-        return_value=None,
-    )
-
-    mocker.patch.object(
-        OllamaEmbeddings,
+        embeddings.VaporEmbeddings,
         "embed_documents",
         side_effect=mock_embed_docs,
     )

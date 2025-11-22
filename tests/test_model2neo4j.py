@@ -1,5 +1,4 @@
 import pytest
-from langchain_ollama import OllamaEmbeddings
 
 from vapor.models import embeddings
 from vapor.utils import model2neo4j
@@ -49,22 +48,24 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     neo4j_client._write(cypher, games=games)
 
     # Set up mocks for embedding model
-    embedding_size = embeddings.EMBEDDING_PARAMS[
-        embeddings.DEFAULT_OLLAMA_EMBEDDING_MODEL
-    ]["embedding_size"]
+    model = "foo"
+    embedding_size = 10
+    mocker.patch.dict(
+        embeddings.EMBEDDING_PARAMS, {model: {"embedding_size": embedding_size}}
+    )
 
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
         return [[0.5] * embedding_size] * len(texts)
 
     mocker.patch.object(
-        OllamaEmbeddings,
+        embeddings.VaporEmbeddings,
         "embed_documents",
         side_effect=mock_embed_docs,
     )
 
     # Run the embedding process
     model2neo4j.embed_game_descriptions(
-        embedder=embeddings.VaporEmbeddings.from_env(),
+        embedder=embeddings.VaporEmbeddings(model="foo"),
         neo4j_client=neo4j_client,
     )
 
