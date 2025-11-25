@@ -8,18 +8,20 @@ addopts = [
 filterwarnings = [
   "ignore::DeprecationWarning",
   "ignore::UserWarning",
+  "ignore::neo4j.ExperimentalWarning",
 ]
 log_cli = "True"
 markers = [
   "slow: slow tests",
+  "neo4j: tests requiring neo4j instance",
 ]
 minversion = "6.0"
 testpaths = "tests/"
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: nocover",
-    "raise NotImplementedError",
-    "raise NotImplementedError()",
-    "if __name__ == .__main__.:",
+  "pragma: nocover",
+  "raise NotImplementedError",
+  "raise NotImplementedError()",
+  "if __name__ == .__main__.:",
 ]

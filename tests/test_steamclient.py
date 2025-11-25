@@ -85,13 +85,20 @@ def test_get_user_friends(
     mocker, steam_client: SteamClient, steam_friends: dict[str, list[str]], limit: int
 ):
     """Tests retrieving a user's friends list"""
-    mock_response = {"friends": steam_friends[globals.STEAM_ID]}
+    mock_response = {
+        "friends": [
+            {"steamid": friend_id} for friend_id in steam_friends[globals.STEAM_ID]
+        ]
+    }
     mocker.patch.object(Users, "get_user_friends_list", return_value=mock_response)
     friends = list(steam_client.get_user_friends(globals.STEAM_ID, limit=limit))
     if limit:
         assert len(friends) == limit
-    for friend in friends:
-        assert "steamid" in friend
+        expected_friends = set(steam_friends[globals.STEAM_ID][:limit])
+    else:
+        assert len(friends) == len(steam_friends[globals.STEAM_ID])
+        expected_friends = set(steam_friends[globals.STEAM_ID])
+    assert set([friend["steamid"] for friend in friends]) == expected_friends
 
     error_response = {"error": "foo"}
     mocker.patch.object(Users, "get_user_friends_list", return_value=error_response)
@@ -154,9 +161,40 @@ def test_get_game_details(
     mocker.patch.object(Apps, "get_app_details", return_value=mock_response)
     response = steam_client.get_game_details(appid)
     assert "name" in response
-    assert "genres" in response
 
     error_response = {"error": "foo"}
     mocker.patch.object(Apps, "get_app_details", return_value=error_response)
     response = steam_client.get_game_details(appid)
     assert response == {}
+
+
+def test_get_game_genres(
+    mocker, steam_client: SteamClient, steam_games: dict[int, dict]
+):
+    """Tests retrieving genres for a game with `appid`"""
+    appid = 1000
+    mock_response = {str(appid): {"data": {"genres": steam_games[appid]["genres"]}}}
+    mocker.patch.object(Apps, "get_app_details", return_value=mock_response)
+    genres = steam_client.get_game_genres(appid)
+    assert genres == steam_games[appid]["genres"]
+
+    error_response = {"error": "foo"}
+    mocker.patch.object(Apps, "get_app_details", return_value=error_response)
+    result = steam_client.get_game_genres(appid)
+    assert result == []
+
+
+def test_about_the_game(mocker, steam_client: SteamClient):
+    """Tests getting the game description for a game with `appid`"""
+    appid = 1000
+    mock_html = "<p><strong>Zed's</strong> dead baby, <em>Zed's</em> dead.</p>"
+    mock_response = {str(appid): {"data": {"about_the_game": mock_html}}}
+    mocker.patch.object(Apps, "get_app_details", return_value=mock_response)
+    game_doc = steam_client.about_the_game(appid)
+    expected_doc = "Zed's dead baby, Zed's dead.\n"
+    assert game_doc == expected_doc
+
+    error_response = {"error": "foo"}
+    mocker.patch.object(Apps, "get_app_details", return_value=error_response)
+    game_doc = steam_client.about_the_game(appid)
+    assert game_doc is None

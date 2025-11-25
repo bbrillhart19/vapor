@@ -1,12 +1,21 @@
-Vapor
--------
+<h1 align="center">Vapor</h1>
+<p align="center">
+    <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff"></a>
+    <a href="https://www.docker.com/"><img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff"></a>
+    <a href="https://neo4j.com/"><img alt="Neo4j" src="https://img.shields.io/badge/Neo4j-008CC1?logo=neo4j&logoColor=white"></a>
+    <a href="https://store.steampowered.com/"><img alt="Steam" src="https://img.shields.io/badge/Steam-%23000000.svg?logo=steam&logoColor=white"></a>
+    <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
+    <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
+</p>
 <p align="center">
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Coverage" src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bbrillhart19/6914181b8919f158adf1aeaca40bea63/raw/vapor-coverage.json"></a>
     <a href="https://github.com/bbrillhart19/vapor/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/bbrillhart19/vapor.svg"></a>
 </p>
 
-A (to-be) GraphRAG based video game recommendation system with Steam Web API and Neo4j.
+
+## About
+A personalized AI chat companion for gamers built on Steam data and GraphRAG.
 
 ## Getting Started
 Before proceeding, clone the repository to your system.
@@ -15,6 +24,7 @@ Before proceeding, clone the repository to your system.
 - Python
 - Pip
 - [Docker](#docker-installation)
+- [Ollama](#ollama)
 
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
@@ -46,12 +56,30 @@ Install Docker via the CLI:
 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
 
+### Ollama
+The project uses open-source models with [Ollama](https://docs.ollama.com/) and you will need to create an account (it's free) and then download `Ollama` depending on your OS by following the instructions [here](https://ollama.com/download/linux)
+
+#### Embeddings
+*TODO: Script this and make it configurable.* Pull `embeddinggemma` with:
+```shell
+ollama pull embeddinggemma
+```
+
+#### Reasoning (Cloud)
+*TODO: Script this and make it configurable.* Using cloud models specifically is what requires the Ollama account. Doing so allows the common person to use much larger open-source models, though there are limits for the free tier. Sign-in, pull and run, for example, `deepseek` with:
+```shell
+ollama signin
+ollama pull deepseek-v3.1:671b-cloud
+ollama run deepseek-v3.1:671b-cloud
+```
+
 ### Start Neo4j
 [Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
 ```shell
 docker compose up -d
 ```
-If all went well, you should be able to navigate to http://localhost:7474 in your browser and view the `noe4j` database. If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
+Navigate to http://localhost:7474 in your browser and view the `neo4j` database. Use the `NEO4J_USER` and `NEO4J_PW` values to log in from your [environment](#setup-environment). If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
+
 
 ## Usage
 
@@ -62,11 +90,50 @@ python vapor/populate.py -h
 ```
 To populate/setup for the first time, enable all populating commands like so:
 ```shell
-python vapor/populate.py -i -f -g -G
+python vapor/populate.py -i -f -g -G -d --embed game-descriptions
 ```
+**NOTE:** There are currently some issues with rate limiting when populating data from Steam. This will be fixed in the future, but for now it is advisable to keep a small dataset using the `limit` argument, e.g. `python vapor/populate.py <args> -l 50` will limit the total amount of friends per user to 50, and the number of games per user to 50. This is usually sufficient to avoid errors with rate limiting. Alternatively, you can populate datatypes one a time, and take a break in between. This is still prone to rate limiting but will grab as much data as possible.
+
 Afterwards, you can run queries in the [Neo4j Browser](http://localhost:7474) and view the results. For example, to view the graph of Users and their "friendships":
 ```cypher
 MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
+```
+
+### Chat
+To start a chat with your configured LLM (see the `.env` file you created during [setup](#setup-environment)):
+```shell
+python vapor/chat.py
+```
+Then you can ask questions about the Steam data. Currently, this has very basic tooling support centered around information about the games in the database, for example:
+```bash
+Ask a question:
+>>> What are some world war 2 games?
+================================ Human Message =================================
+
+What are some world war 2 games?
+================================== Ai Message ==================================
+Tool Calls:
+  find_similar_games (d4d0d2b2-e2d2-4ee3-94bb-5b774a368483)
+ Call ID: d4d0d2b2-e2d2-4ee3-94bb-5b774a368483
+  Args:
+    summarized_description: World War II game
+================================= Tool Message =================================
+Name: find_similar_games
+### ... tool result output ... ###
+================================== Ai Message ==================================
+
+Here are several World War II games you might enjoy, along with a quick snapshot of what each offers:
+
+| Game | Steam AppID | Highlight |
+|------|-------------|-----------|
+| **Call of Duty: World at War** | 10090 | A gritty first‑person shooter that takes you deep into both the European and Pacific fronts, featuring realistic combat, Kamikaze attacks, and a raw, unfiltered WWII experience. |
+| **Company of Heroes – Legacy Edition** | 4560 | A real‑time strategy title that places you in the boots of Allied soldiers during D‑Day and beyond, with advanced squad AI, dynamic environments, and a cinematic single‑player campaign. |
+| **Darkest Hour: Europe ’44‑’45** | 1280 | A multiplayer tactical shooter that lets you play as one of seven nations, featuring over 100 authentic battles from Normandy to Berlin, complete with sandbags, foxholes, and logistics. |
+| **Day of Defeat** | 30 | A classic Axis‑vs‑Allied team‑based FPS that focuses on squad tactics and historically accurate weaponry across key WWII map settings. |
+| **Mare Nostrum** | 1230 | Focuses on the North African campaign with realistic infantry and vehicle combat, offering a mix of urban street fighting and open‑desert tank battles. |
+| **Tom Clancy's Rainbow Six Siege X** | 359550 | While not strictly WWII, it’s a tactical shooter that can appeal to fans of tactical team play and historical themes. |
+
+These titles cover a range of genres—first‑person shooters, tactical shooters, and real‑time strategy—so you can pick the style that appeals most to you.
 ```
 
 ## Development
@@ -74,21 +141,19 @@ Refer to this section only if you are developing the codebase.
 
 ### Development Checklist
 - [ ] Ensure [environment](#installation) is setup and activated
-- [ ] Use the Docker services for [development](#docker-development-containers)
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
-- [ ] TODO: CI/CD with Actions
+- [ ] Bump the [version](setup.py) with standard semantic versioning rules
+- [ ] Create a [PR](#https://github.com/bbrillhart19/vapor/pulls) as a draft
+- [ ] Trigger [CI/CD tests workflow](.github/workflows/test.yml) by marking the PR "Ready for review"
+- [ ] Merge the PR after review and required approvals
+- [ ] Create a [release](https://github.com/bbrillhart19/vapor/releases/) matching the updated version number
 
 ### Installation
+#### Vapor Development Package
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
 pip install -e .[dev]
-```
-
-### Docker Development Container(s)
-To use services for development work, spin up with the `dev` compose file:
-```shell
-docker compose -f compose.dev.yaml up -d
 ```
 
 ### Code Formatting
@@ -98,7 +163,7 @@ black vapor tests
 ```
 
 ### Unit Tests
-A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers:
+A convenience script has been set up to launch the necessary [development containers](compose.dev.yaml) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
-bash scripts/run-tests.sh
+bash scripts/dev/run-tests.sh
 ```

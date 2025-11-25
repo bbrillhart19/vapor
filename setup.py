@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="vapor",
-    version="0.0.5",
+    version="0.1.0",
     description="Personalized AI Companion for Steam",
     author="Brett Brillhart",
     author_email="bbrillhart19@gmail.com",
@@ -17,6 +17,9 @@ setup(
         "dotenv",
         "pandas",
         "loguru",
+        "langchain",
+        "langchain-ollama",
+        "langchain-text-splitters",
     ],
     extras_require={
         "dev": [

@@ -4,6 +4,7 @@ import time
 
 from loguru import logger
 from steam_web_api import Steam
+from html2text import HTML2Text
 
 from vapor.utils import utils
 
@@ -18,6 +19,7 @@ class SteamClient(Steam):
     ):
         super().__init__(steam_api_key)
         self.steamid = steamid
+        self.html_parser = self._setup_html_parser()
 
     @classmethod
     def from_env(cls) -> SteamClient:
@@ -25,6 +27,15 @@ class SteamClient(Steam):
             steam_api_key=utils.get_env_var("STEAM_API_KEY"),
             steamid=utils.get_env_var("STEAM_ID"),
         )
+
+    @staticmethod
+    def _setup_html_parser() -> HTML2Text:
+        h = HTML2Text()
+        h.ignore_links = True
+        h.ignore_emphasis = True
+        h.ignore_images = True
+        h.body_width = 0
+        return h
 
     def _query_steam(
         self,
@@ -153,7 +164,13 @@ class SteamClient(Steam):
     def get_game_details(
         self, appid: int, filters: list[str] = ["basic"]
     ) -> dict[str, Any]:
-        """Get the details of a game with `appid` applied to the returned fields specified by `filters`. NOTE: The 'basic' filter will return a `genres` field."""
+        """Get the details of a game with `appid` applied to the
+        returned fields specified by `filters`.
+        NOTE: The 'basic' filter includes several fields that can only
+        be retrieved by using the 'basic' filter and getting all of them.
+        Other fields, such as 'genres', are optional and can be specified
+        individually.
+        """
         response = self._query_steam(
             self.apps.get_app_details, app_id=int(appid), filters=",".join(filters)
         )
@@ -165,3 +182,23 @@ class SteamClient(Steam):
             return {}
 
         return app_details
+
+    def get_game_genres(self, appid: int) -> list[dict[str, Any]]:
+        """Retrieve the genres for the game with `appid`."""
+        # Get game details with 'genres' filter
+        game_details = self.get_game_details(appid, filters=["genres"])
+        if "genres" not in game_details:
+            return []
+        return game_details["genres"]
+
+    def about_the_game(self, appid: int) -> str | None:
+        """Get the `'about_the_game'` description for the game with `appid`."""
+        # Get game details with 'basic' filter (which includes 'about_the_game')
+        game_details = self.get_game_details(appid, filters=["basic"])
+        if "about_the_game" not in game_details:
+            return None
+
+        # Get the HTML game description
+        game_doc_html = game_details["about_the_game"]
+        game_doc = self.html_parser.handle(game_doc_html)
+        return game_doc

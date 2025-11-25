@@ -1,9 +1,11 @@
 from __future__ import annotations
 from typing import Any
 import warnings
+from time import sleep
 
 from loguru import logger
 from neo4j import GraphDatabase, RoutingControl, ExperimentalWarning
+from neo4j.exceptions import ServiceUnavailable
 import pandas as pd
 
 from vapor.utils import utils
@@ -19,13 +21,20 @@ class NotFoundException(Exception):
 class Neo4jClient(object):
     """Client to perform Cypher transactions to the Neo4j GraphDB"""
 
-    def __init__(self, uri: str, auth: tuple[str, str], database: str):
+    def __init__(
+        self,
+        uri: str,
+        auth: tuple[str, str],
+        database: str,
+        timeout: int = 60,
+        sleep_duration: int = 5,
+    ):
         """Initialize the client to connect to the database
         at `uri` with the `auth` combo of `(username, password)`
         """
         self.driver = GraphDatabase.driver(uri=uri, auth=auth)
         self._database = database
-        self.driver.verify_connectivity(database=self._database)
+        self._wait_for_connection(timeout, sleep_duration)
 
     @classmethod
     def from_env(cls) -> Neo4jClient:
@@ -38,6 +47,28 @@ class Neo4jClient(object):
             ),
             database=utils.get_env_var("NEO4J_DATABASE"),
         )
+
+    def _wait_for_connection(self, timeout: int = 60, sleep_duration: int = 5):
+        logger.info("Verifying Neo4j Connection >>>")
+        time_remaining = timeout
+        connected = False
+        while not connected and time_remaining > 0:
+            try:
+                # TODO: Figure out how to ignore the ERROR notification
+                # when this doesn't initially connect
+                self.driver.verify_connectivity(database=self._database)
+                connected = True
+            except ServiceUnavailable:
+                logger.warning(
+                    f"Connection attempt failed, time remaining={time_remaining}s"
+                )
+                sleep(sleep_duration)
+                time_remaining -= sleep_duration
+
+        if not connected:
+            logger.error("Timeout reached, Neo4j connection failed!")
+            raise ServiceUnavailable
+        logger.success("Successfully connected to Neo4j >>>")
 
     def _write(self, cypher: str, **kwargs) -> None:
         """Run the `cypher` query in 'write' mode"""
@@ -79,9 +110,68 @@ class Neo4jClient(object):
     def _set_genre_constraint(self) -> None:
         self._set_node_constraint("genre_constraint", "Genre", "genreId")
 
+    def _set_game_description_chunk_constraint(self) -> None:
+        self._set_node_constraint(
+            "game_description_chunk_constraint", "DescriptionChunk", "chunkId"
+        )
+
     def _get_constraints(self) -> pd.DataFrame:
         cypher = """SHOW CONSTRAINTS"""
         return self._read(cypher)
+
+    def _set_vector_index(
+        self,
+        index_name: str,
+        node: str,
+        embedding_dimension: int,
+        similarity_function: str = "cosine",
+        embedding_key: str = "embedding",
+        timeout: int = 300,
+    ) -> None:
+        """Set up a vector index for the database.
+
+        Args:
+            index_name (str): The name of the vector index.
+            node (str): The node label of the nodes to index.
+            embedding_dimension (int): The length of the embedding vector.
+            similarity_function (str, optional): The similarity function to
+                index the embeddings by. Defaults to "cosine".
+            embedding_key (str, optional): The node attribute storing the embeddings.
+                Defaults to "embedding".
+            timeout (int, optional): Time to wait, in seconds, for the index
+                to come online after being set. Defaults to 300.
+        """
+        # Create the vector index on the nodes
+        cypher = """
+            CREATE VECTOR INDEX {0}
+                IF NOT EXISTS FOR (n:{1}) ON (n.{2})
+        """.format(
+            index_name, node, embedding_key
+        )
+        # NOTE: Splitting like this to avoid problems with f-strings and curly braces
+        cypher += """
+            OPTIONS {indexConfig: {
+                `vector.dimensions`: toInteger($dimension),
+                `vector.similarity_function`: UPPER($similarity_function)
+                }
+            }
+        """
+        self._write(
+            cypher,
+            dimension=embedding_dimension,
+            similarity_function=similarity_function,
+        )
+        # Wait for index to come online
+        await_cypher = """
+            CALL db.awaitIndex("{0}", {1})
+        """.format(
+            index_name, timeout
+        )
+        self._read(await_cypher)
+
+    def _get_vector_indexes(self) -> pd.DataFrame:
+        cypher = """SHOW VECTOR INDEXES"""
+        return self._read(cypher=cypher)
 
     def _set_primary_user(self, primary_steamid: str) -> None:
         """Set the primary user, i.e. central node, of the database.
@@ -133,6 +223,7 @@ class Neo4jClient(object):
             "game_constraint",
             "user_constraint",
             "genre_constraint",
+            "game_description_chunk_constraint",
         }
         constraints = set(self._get_constraints()["name"])
         missing_constraints = required_constraints - constraints
@@ -156,6 +247,7 @@ class Neo4jClient(object):
         self._set_user_constraint()
         self._set_game_constraint()
         self._set_genre_constraint()
+        self._set_game_description_chunk_constraint()
 
         # Recurse to validate success
         self.setup_from_primary_user(**primary_user)
@@ -168,6 +260,14 @@ class Neo4jClient(object):
         """
         for constraint in self._get_constraints()["name"]:
             self._write(cypher, constraint=constraint)
+
+    def _remove_indexes(self) -> None:
+        """Remove all indexes (including vector indexes)"""
+        cypher = """
+            DROP INDEX $vector_index IF EXISTS
+        """
+        for vector_index in self._get_vector_indexes()["name"]:
+            self._write(cypher, vector_index=vector_index)
 
     def _detach_delete(self) -> None:
         """Remove all nodes and relationships from the graph"""
@@ -182,11 +282,12 @@ class Neo4jClient(object):
         relationships, and constraints
         """
         logger.warning(
-            "Removing all nodes, relationships, and constraints from the graph!"
-            + " This action cannote be undone."
+            "Removing all nodes, relationships, and constraints, etc."
+            + " from the graph! This action cannote be undone."
         )
         self._detach_delete()
         self._remove_constraints()
+        self._remove_indexes()
 
     @staticmethod
     def _validate_node_fields(
@@ -307,7 +408,8 @@ class Neo4jClient(object):
         cypher = """
             MATCH (u:User {steamId: $steamid})
             UNWIND $games AS game
-            MERGE (g:Game {appId: game.appid, name: game.name})
+            MERGE (g:Game {appId: game.appid})
+            SET g.name = game.name
             MERGE (u)-[:OWNS_GAME {
                 playtime: game.playtime_forever
             }]->(g)
@@ -409,3 +511,168 @@ class Neo4jClient(object):
             }]->(g)
         """
         return self._write(update_cypher, steamid=steamid, games=validated_games)
+
+    def add_game_descriptions(self, descriptions: list[dict[str, Any]]):
+        """Add a game descriptions by setting the `about_the_game` property
+        for each `Game` node keyed by the `appid` of each element in the
+        `descriptions` list.
+
+        Args:
+            descriptions (list[dict[int, str]]): The list of `{appid: description}`
+                mappings to add to the database.
+        """
+        # Validate the descriptions
+        validated_descriptions = self._validate_node_fields(
+            nodes=descriptions, defaults={"appid": None, "about_the_game": None}
+        )
+        # Run cypher to unwind and set game descriptions
+        cypher = """
+            UNWIND $descriptions as description
+            MATCH (g:Game {appId: description.appid})
+            SET g.aboutTheGame = description.about_the_game
+        """
+        self._write(cypher, descriptions=validated_descriptions)
+
+    def get_game_descriptions(self, games: list[dict[str, Any]]) -> pd.DataFrame:
+        """Retrieve the game descriptions from the `aboutTheGame`
+        attribute for the `Game` nodes in the `games` list.
+
+
+        Args:
+            games (list[dict[str, Any]]): The list of games each with
+                at least the parameter of `appid` to retrieve the
+                game descriptions for.
+
+        Returns:
+            pd.DataFrame: The result table with columns `appid` and
+                `about_the_game`. Games that do not have a description
+                will not be included in the table.
+        """
+        cypher = """
+            UNWIND $games as game
+            MATCH (g:Game {appId: game.appid})
+            WHERE g.aboutTheGame IS NOT NULL
+            RETURN g.appId as appid, g.aboutTheGame as about_the_game
+        """
+        return self._read(cypher, games=games)
+
+    def set_game_description_embeddings(self, appid: int, chunks: list[dict[str, Any]]):
+        """Creates the `HAS_DECRIPTION_CHUNK` relationship for the `Game`
+        node matching `appid` to each of the `chunks` which are assumed to
+        be chunks of text from the game's description. Each `chunk` item should have
+        an `"embedding"` attribute which represents the feature embedding vector
+        for the chunk of text.
+        NOTE: Any existing `HAS_DESCRIPTION_CHUNK` relationships for this `appid`
+        will be removed prior to adding the new relationships from the `chunks` list.
+
+        Args:
+            appid (int): The Steam app id number for the game
+                to add the game description chunk relationships too.
+            chunks (list[dict[str, Any]]): The list of chunks extracted
+                from the game description for this `appid` and embedded
+                with the vector stored in the `"embedding"` attribute
+                of each `chunk` item.
+
+        """
+        # Remove any existing chunks for this game
+        remove_cypher = """
+            MATCH (g:Game {appId: $appid})-[:HAS_DESCRIPTION_CHUNK]->(n:DescriptionChunk)
+            DETACH DELETE n
+        """
+        self._write(remove_cypher, appid=appid)
+        # Validate the incoming chunk nodes
+        validated_nodes = self._validate_node_fields(
+            nodes=chunks,
+            defaults={
+                "chunkid": None,
+                "source": appid,
+                "start_index": None,
+                "total_length": None,
+                "embedding": None,
+            },
+        )
+        # Add the chunk relationships and nodes
+        embed_cypher = """
+            MATCH (g:Game {appId: $appid})
+            UNWIND $chunks as chunk
+            MERGE (g)-[:HAS_DESCRIPTION_CHUNK]->(c:DescriptionChunk {
+                chunkId: chunk.chunkid,
+                source: chunk.source,
+                startIndex: chunk.start_index,
+                totalLength: chunk.total_length,
+                embedding: chunk.embedding
+            })
+            WITH c
+            CALL db.create.setNodeVectorProperty(c, "embedding", c.embedding)
+        """
+        self._write(embed_cypher, appid=appid, chunks=validated_nodes)
+
+    def set_game_description_vector_index(
+        self, embedding_dimension: int, **kwargs
+    ) -> None:
+        """Sets up the vector index for all `DescriptionChunk`
+        nodes. Keyword arguments are the optional arguments in
+        `Neo4jClient._set_vector_index()`.
+        """
+        self._set_vector_index(
+            index_name="game_description_index",
+            node="DescriptionChunk",
+            embedding_dimension=embedding_dimension,
+            **kwargs,
+        )
+
+    def search_game_by_name(self, name: str) -> pd.DataFrame:
+        """Searches all `Game` nodes for those that closely match
+        the provided `name` which may not be exact. The method requires
+        the APOC Neo4j plugin to use `apoc.text.fuzzyMatch` and
+        `apoc.text.clean` to find the best match.
+
+        Args:
+            name (str): The name of the game to search for.
+
+        Returns:
+            pd.DataFrame: The table of matched games, with "appid"
+                and "name" values. If no game is found, this table will
+                be empty. If multiple matches are found,
+                they will be sorted in ascending order of their
+                Levenshtein distances, best match will be the first row.
+        """
+        cypher = """
+            WITH apoc.text.clean($name) as clean_name
+            MATCH (g:Game)
+            WHERE apoc.text.fuzzyMatch(apoc.text.clean(g.name), clean_name) = TRUE
+            RETURN 
+                g.appId as appid,
+                g.name as name,
+                apoc.text.distance(apoc.text.clean(g.name), clean_name) as distance
+        """
+        result = self._read(cypher, name=name)
+        return result.sort_values(by="distance", ignore_index=True)
+
+    def game_descriptions_semantic_search(
+        self,
+        embedding: list[float],
+        n_neighbors: int,
+        min_score: float,
+    ) -> pd.DataFrame:
+        """Semantic similarity search with the game description embeddings"""
+        cypher = """
+            CALL db.index.vector.queryNodes(
+                "game_description_index", 
+                $n_neighbors, 
+                $embedding
+            ) YIELD node, score
+            WHERE score >= $min_score
+            MATCH (g:Game {appId: node.source})
+            RETURN 
+                g.name as name, 
+                g.appId as appid,
+                substring(g.aboutTheGame, node.startIndex, node.totalLength) as desc, 
+                score
+        """
+        return self._read(
+            cypher,
+            embedding=embedding,
+            n_neighbors=n_neighbors,
+            min_score=min_score,
+        )
