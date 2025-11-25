@@ -602,6 +602,8 @@ class Neo4jClient(object):
                 totalLength: chunk.total_length,
                 embedding: chunk.embedding
             })
+            WITH c
+            CALL db.create.setNodeVectorProperty(c, "embedding", c.embedding)
         """
         self._write(embed_cypher, appid=appid, chunks=validated_nodes)
 
@@ -646,3 +648,31 @@ class Neo4jClient(object):
         """
         result = self._read(cypher, name=name)
         return result.sort_values(by="distance", ignore_index=True)
+
+    def game_descriptions_semantic_search(
+        self,
+        embedding: list[float],
+        n_neighbors: int,
+        min_score: float,
+    ) -> pd.DataFrame:
+        """Semantic similarity search with the game description embeddings"""
+        cypher = """
+            CALL db.index.vector.queryNodes(
+                "game_description_index", 
+                $n_neighbors, 
+                $embedding
+            ) YIELD node, score
+            WHERE score >= $min_score
+            MATCH (g:Game {appId: node.source})
+            RETURN 
+                g.name as name, 
+                g.appId as appid,
+                substring(g.aboutTheGame, node.startIndex, node.totalLength) as desc, 
+                score
+        """
+        return self._read(
+            cypher,
+            embedding=embedding,
+            n_neighbors=n_neighbors,
+            min_score=min_score,
+        )

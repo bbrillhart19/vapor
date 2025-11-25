@@ -53,3 +53,55 @@ def about_the_game(name: str, runtime: ToolRuntime[VaporContext]) -> str:
     # Add retrieved description and return
     response["about_the_game"] = description
     return json.dumps(response)
+
+
+@tool
+def find_similar_games(
+    summarized_description: str, runtime: ToolRuntime[VaporContext]
+) -> str:
+    """Finds games and excerpts of their "about the game" descriptions
+    in the database which are semantically similar to the
+    provided `summarized_description`. Provides the discovered games
+    and their respective excerpts of similar descriptions.
+
+    Args:
+        summarized_description (str): A summarized game description
+            that may be tailored to highlight specific information
+            about the game to discover games which are similar
+            in specific ways. This will be embedded and used as such
+            for semantic similarity search in the vector database.
+
+    Returns:
+        str: The JSON-formatted text with each discovered similar
+            game as well as the description chunks most similar
+            to the `summarized_description`. Each discovered similar game
+            will include a "name" field with the title of the game,
+            a "appid" field with the unique Steam game ID of the game,
+            and a "description_chunks" field which will contain a list
+            of each similar description excerpt from the game.
+            If no similar games are found, the returned response
+            will be an empty string.
+    """
+    # Create an embedding of the summarized description
+    embedding = runtime.context.embedder.embed_query(summarized_description)
+    # Run semantic search over game descriptions
+    result = runtime.context.neo4j_client.game_descriptions_semantic_search(
+        embedding=embedding,
+        n_neighbors=10,
+        min_score=0.5,
+    )
+    # Return nothing if empty
+    if result.empty:
+        return ""
+    # Parse responses
+    parsed_results = []
+    for name, game_df in result.groupby(by="name"):
+        appid = game_df.iloc[0]["appid"]
+        parsed_result = {
+            "name": name,
+            "appid": int(appid),
+            "description_chunks": game_df["desc"].values.tolist(),
+        }
+        parsed_results.append(parsed_result)
+
+    return json.dumps(parsed_results)

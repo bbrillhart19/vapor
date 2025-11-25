@@ -6,6 +6,7 @@ from langgraph.graph.state import CompiledStateGraph
 from vapor.clients import Neo4jClient
 from vapor.tools import GAME_TOOLS
 from vapor.models.llm import VaporLLM
+from vapor.models.embeddings import VaporEmbeddings
 from vapor.models.prompts import load_prompt
 from vapor import VaporContext
 
@@ -29,8 +30,11 @@ def chat() -> None:
     logger.info("Initializing Neo4jClient...")
     neo4j_client = Neo4jClient.from_env()
 
+    logger.info("Initializing embedding model...")
+    embedder = VaporEmbeddings.from_env()
+
     logger.info("Setting up context...")
-    context = VaporContext(neo4j_client=neo4j_client)
+    context = VaporContext(neo4j_client=neo4j_client, embedder=embedder)
 
     logger.info("Loading prompt...")
     prompt = load_prompt("chat")
