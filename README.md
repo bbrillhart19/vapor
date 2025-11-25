@@ -104,14 +104,43 @@ To start a chat with your configured LLM (see the `.env` file you created during
 ```shell
 python vapor/chat.py
 ```
-Then you can ask questions about the Steam data. Currently, this has very limited tooling support
+Then you can ask questions about the Steam data. Currently, this has very basic tooling support centered around information about the games in the database, for example:
+```bash
+Ask a question:
+>>> What are some world war 2 games?
+================================ Human Message =================================
+
+What are some world war 2 games?
+================================== Ai Message ==================================
+Tool Calls:
+  find_similar_games (d4d0d2b2-e2d2-4ee3-94bb-5b774a368483)
+ Call ID: d4d0d2b2-e2d2-4ee3-94bb-5b774a368483
+  Args:
+    summarized_description: World War II game
+================================= Tool Message =================================
+Name: find_similar_games
+### ... tool result output ... ###
+================================== Ai Message ==================================
+
+Here are several World War II games you might enjoy, along with a quick snapshot of what each offers:
+
+| Game | Steam AppID | Highlight |
+|------|-------------|-----------|
+| **Call of Duty: World at War** | 10090 | A gritty first‑person shooter that takes you deep into both the European and Pacific fronts, featuring realistic combat, Kamikaze attacks, and a raw, unfiltered WWII experience. |
+| **Company of Heroes – Legacy Edition** | 4560 | A real‑time strategy title that places you in the boots of Allied soldiers during D‑Day and beyond, with advanced squad AI, dynamic environments, and a cinematic single‑player campaign. |
+| **Darkest Hour: Europe ’44‑’45** | 1280 | A multiplayer tactical shooter that lets you play as one of seven nations, featuring over 100 authentic battles from Normandy to Berlin, complete with sandbags, foxholes, and logistics. |
+| **Day of Defeat** | 30 | A classic Axis‑vs‑Allied team‑based FPS that focuses on squad tactics and historically accurate weaponry across key WWII map settings. |
+| **Mare Nostrum** | 1230 | Focuses on the North African campaign with realistic infantry and vehicle combat, offering a mix of urban street fighting and open‑desert tank battles. |
+| **Tom Clancy's Rainbow Six Siege X** | 359550 | While not strictly WWII, it’s a tactical shooter that can appeal to fans of tactical team play and historical themes. |
+
+These titles cover a range of genres—first‑person shooters, tactical shooters, and real‑time strategy—so you can pick the style that appeals most to you.
+```
 
 ## Development
 Refer to this section only if you are developing the codebase. 
 
 ### Development Checklist
 - [ ] Ensure [environment](#installation) is setup and activated
-- [ ] Use the Docker services for [development](#docker-development-containers)
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
 - [ ] Bump the [version](setup.py) with standard semantic versioning rules
@@ -126,38 +155,6 @@ Install the editable `dev` flavor of the `vapor` package, preferably within a vi
 ```shell
 pip install -e .[dev]
 ```
-#### Development Environment
-Create a development environment file from the `.env` file created in [setup](#setup-environment):
-```shell
-cp .env dev.env
-```
-And make the following changes to ensure a develop environment that:
-1. Will not conflict with production services:
-```bash
-NEO4J_URI=neo4j://localhost:7688
-```
-2. Will use a local model that is runnable on most devices (and not use limited cloud resources):
-```bash
-OLLAMA_LLM=granite4:micro-h
-```
-***TODO: Create a script to do this automatically, along with the production setup***
-### General Development Usage
-#### Docker Development Container(s)
-To spin up a `neo4j` instance and populate with some data to experiment/debug with:
-```shell
-bash scripts/dev/setup.sh
-```
-You can view this `neo4j` instance in the browser at http://localhost:7475.
-
-**NOTE:** This database does not persist after the container exits, and also will be restarted (i.e. cleared) when running [unit tests](#unit-tests) locally. Fixing these limitations is a to-do item.
-
-#### Commands with Development Environment
-If you wish to run `vapor` commands in development mode, ensure you point `vapor` to your [dev environment file](#development-environment) prior to running commands. For example:
-```shell
-VAPOR_ENV=dev.env python vapor/chat.py
-```
-
-
 
 ### Code Formatting
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
@@ -166,9 +163,7 @@ black vapor tests
 ```
 
 ### Unit Tests
-A convenience script has been set up to launch the [development services](#docker-development-containers) and subsequently run the tests and report coverage before spinning down the containers:
+A convenience script has been set up to launch the necessary [development containers](compose.dev.yaml) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
 bash scripts/dev/run-tests.sh
 ```
-
-
