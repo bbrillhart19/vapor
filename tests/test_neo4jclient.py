@@ -7,6 +7,7 @@ from neo4j import Driver
 from neo4j.exceptions import ServiceUnavailable
 
 from vapor.clients import Neo4jClient
+from vapor.models.embeddings import VaporEmbeddings
 
 from helpers import globals
 
@@ -417,3 +418,50 @@ def test_search_game_by_name(neo4j_client: Neo4jClient):
     assert result.iloc[0]["appid"] == appid + 1
     assert result.iloc[0]["name"] == actual_name2
     assert result.iloc[0]["distance"] < result.iloc[1]["distance"]
+
+
+@pytest.mark.neo4j
+def test_game_descriptions_semantic_search(
+    mock_embedder: VaporEmbeddings, neo4j_client: Neo4jClient
+):
+    """Tests semantic search of game descriptions"""
+    # Set up vector index
+    neo4j_client.set_game_description_vector_index(
+        embedding_dimension=mock_embedder.embedding_size
+    )
+    # Add a game with a description chunk + embedding
+    appid = 1000
+    name = "Test"
+    about_the_game = "This is a test game"
+
+    embedding = mock_embedder.embed_documents([about_the_game])[0]
+    cypher = """
+        MERGE (g:Game {appId: $appid, name: $name, aboutTheGame: $about_the_game})
+        MERGE (g)-[:HAS_DESCRIPTION_CHUNK]-(c:DescriptionChunk {
+            source: g.appId,
+            totalLength: $length,
+            startIndex: 0,
+            embedding: $embedding
+        })
+    """
+    neo4j_client._write(
+        cypher,
+        appid=appid,
+        name=name,
+        about_the_game=about_the_game,
+        length=len(about_the_game),
+        embedding=embedding,
+    )
+
+    # Run semantic search with same embedding, should return same mock chunk
+    result = neo4j_client.game_descriptions_semantic_search(
+        embedding=embedding,
+        n_neighbors=1,
+        min_score=0.0,
+    )
+    assert not result.empty
+    row = result.iloc[0]
+    assert row["name"] == name
+    assert row["appid"] == appid
+    assert row["desc"] == about_the_game
+    assert row["score"] > 0

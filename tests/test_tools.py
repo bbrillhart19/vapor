@@ -2,8 +2,10 @@ import json
 
 import pytest
 from langchain.tools import ToolRuntime
+import pandas as pd
 
 from vapor._types import VaporContext
+from vapor.clients import Neo4jClient
 from vapor import tools
 
 
@@ -38,3 +40,34 @@ def test_about_the_game(tool_runtime: ToolRuntime[VaporContext]):
     assert result == json.dumps(
         {"matched_game": actual_name, "about_the_game": description}
     )
+
+
+def test_find_similar_games(mocker, tool_runtime: ToolRuntime[VaporContext]):
+    """Tests `find_similar_games` (semantic search) tool for vapor agents"""
+    query = "A test game"
+    tool_args = {"summarized_description": query, "runtime": tool_runtime}
+    # Test empty result
+    mocker.patch.object(
+        tool_runtime.context.neo4j_client,
+        "game_descriptions_semantic_search",
+        return_value=pd.DataFrame([{}]),
+    )
+    result = tools.games.find_similar_games.run(tool_args)
+    assert result == ""
+
+    # Mock the neo4j client function for return similar games
+    mock_result = {"name": "Test", "appid": 1000, "desc": "A test game"}
+    mocker.patch.object(
+        tool_runtime.context.neo4j_client,
+        "game_descriptions_semantic_search",
+        return_value=pd.DataFrame([mock_result]),
+    )
+    result = tools.games.find_similar_games.run(tool_args)
+    expected_result = [
+        {
+            "name": mock_result["name"],
+            "appid": mock_result["appid"],
+            "description_chunks": [mock_result["desc"]],
+        }
+    ]
+    assert result == json.dumps(expected_result)

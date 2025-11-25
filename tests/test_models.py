@@ -3,8 +3,6 @@ import pytest
 from vapor.models import embeddings, llm, prompts
 from vapor.utils import utils
 
-# TODO: Come back to this and make sure proper mocking of environment
-
 
 def test_embeddings():
     """Tests creation of `VaporEmbeddings` object and properties"""

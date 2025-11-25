@@ -1,6 +1,6 @@
 import pytest
 
-from vapor.models import embeddings
+from vapor.models.embeddings import VaporEmbeddings
 from vapor.utils import model2neo4j
 from vapor.clients import Neo4jClient
 
@@ -28,7 +28,9 @@ def test_generate_chunks():
 
 
 @pytest.mark.neo4j
-def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
+def test_embed_game_descriptions(
+    mock_embedder: VaporEmbeddings, neo4j_client: Neo4jClient
+):
     """Tests creating embeddings from game descriptions
     and writing to neo4j database
     """
@@ -47,25 +49,9 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
     """
     neo4j_client._write(cypher, games=games)
 
-    # Set up mocks for embedding model
-    model = "foo"
-    embedding_size = 10
-    mocker.patch.dict(
-        embeddings.EMBEDDING_PARAMS, {model: {"embedding_size": embedding_size}}
-    )
-
-    def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
-        return [[0.5] * embedding_size] * len(texts)
-
-    mocker.patch.object(
-        embeddings.VaporEmbeddings,
-        "embed_documents",
-        side_effect=mock_embed_docs,
-    )
-
-    # Run the embedding process
+    # Run the embedding process w/ mocked embedder
     model2neo4j.embed_game_descriptions(
-        embedder=embeddings.VaporEmbeddings(model="foo"),
+        embedder=mock_embedder,
         neo4j_client=neo4j_client,
     )
 
@@ -90,4 +76,4 @@ def test_embed_game_descriptions(mocker, neo4j_client: Neo4jClient):
             assert row.chunk_id.startswith(str(row.appid))
             assert row.source == appid
             assert row.total_length > 0
-            assert len(row.embedding) == embedding_size
+            assert len(row.embedding) == mock_embedder.embedding_size

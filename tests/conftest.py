@@ -5,6 +5,7 @@ import pytest
 from langchain.tools import ToolRuntime
 
 from vapor._types import VaporContext
+from vapor.models import embeddings
 from vapor.clients import Neo4jClient, SteamClient
 
 from helpers import globals
@@ -99,8 +100,30 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
 
 
 @pytest.fixture(scope="function")
-def vapor_ctx(neo4j_client: Neo4jClient) -> VaporContext:
-    return VaporContext(neo4j_client=neo4j_client)
+def mock_embedder(mocker):
+    model = "foo"
+    embedding_size = 10
+    mocker.patch.dict(
+        embeddings.EMBEDDING_PARAMS, {model: {"embedding_size": embedding_size}}
+    )
+
+    def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
+        return [[0.5] * embedding_size] * len(texts)
+
+    mocker.patch.object(
+        embeddings.VaporEmbeddings,
+        "embed_documents",
+        side_effect=mock_embed_docs,
+    )
+
+    return embeddings.VaporEmbeddings(model=model)
+
+
+@pytest.fixture(scope="function")
+def vapor_ctx(
+    neo4j_client: Neo4jClient, mock_embedder: embeddings.VaporEmbeddings
+) -> VaporContext:
+    return VaporContext(neo4j_client=neo4j_client, embedder=mock_embedder)
 
 
 @pytest.fixture(scope="function")

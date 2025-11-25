@@ -5,6 +5,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from vapor.clients import Neo4jClient
 from vapor.models.llm import VaporLLM
+from vapor.models.embeddings import VaporEmbeddings
 from vapor._types import VaporContext
 
 from vapor import chat
@@ -16,17 +17,17 @@ class MockCompiledStateGraph(CompiledStateGraph):
         super().__init__(builder=builder, schema_to_mapper=schema_to_mapper, **kwargs)
 
 
-def test_handle_chat(mocker):
+def test_handle_chat(mocker, mock_embedder: VaporEmbeddings):
     """Tests the inner handling of each user chat request"""
     # Each chat message requires the agent and context -
     # First mock them so they aren't actually required to do
     # anything, then create them to input to the method
     mocker.patch.object(Neo4jClient, "from_env")
-    context = VaporContext(neo4j_client=Neo4jClient.from_env())
+    context = VaporContext(neo4j_client=Neo4jClient.from_env(), embedder=mock_embedder)
 
     # Mock the agent to ensure we don't create a real agent
     mocker.patch("vapor.chat.create_agent", return_value=MockCompiledStateGraph)
-    agent = chat.create_agent(model="foo")
+    agent: MockCompiledStateGraph = chat.create_agent(model="foo")
 
     # Mock the built input to return something from the "user"
     mocker.patch("builtins.input", return_value="Test In")
@@ -47,6 +48,7 @@ def test_chat(mocker):
     is tested separately to avoid getting stuck in an infinite loop.
     """
     mocker.patch.object(Neo4jClient, "from_env")
+    mocker.patch.object(VaporEmbeddings, "from_env")
     mocker.patch.object(VaporLLM, "from_env")
     mocker.patch("vapor.chat.create_agent", return_value=MockCompiledStateGraph)
     mocker.patch("vapor.chat.handle_chat", side_effect=KeyboardInterrupt)

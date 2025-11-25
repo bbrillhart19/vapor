@@ -1,11 +1,10 @@
 import os
 
 import pytest
-from langchain_ollama import OllamaEmbeddings
 
 from vapor.clients import SteamClient, Neo4jClient
 from vapor import populate
-from vapor.models import embeddings
+from vapor.models.embeddings import VaporEmbeddings
 from helpers import globals
 
 
@@ -45,6 +44,7 @@ def test_init_delete(mocker, neo4j_client: Neo4jClient):
 @pytest.mark.neo4j
 def test_populate(
     mocker,
+    mock_embedder: VaporEmbeddings,
     neo4j_client: Neo4jClient,
     steam_users: dict[str, dict],
     steam_friends: dict[str, list[str]],
@@ -129,22 +129,8 @@ def test_populate(
         side_effect=mocked_game_description,
     )
 
-    # Set up mocks for embedding model
-    # NOTE: Using environment params directly here
-    # rather than "foo" model, populate method
-    # will initialize using from_env()
-    embedding_size = embeddings.EMBEDDING_PARAMS[
-        embeddings.DEFAULT_OLLAMA_EMBEDDING_MODEL
-    ]["embedding_size"]
-
-    def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
-        return [[0.5] * embedding_size] * len(texts)
-
-    mocker.patch.object(
-        embeddings.VaporEmbeddings,
-        "embed_documents",
-        side_effect=mock_embed_docs,
-    )
+    # Mock the from_env() for embedding model
+    mocker.patch.object(VaporEmbeddings, "from_env", return_value=mock_embedder)
 
     # Set small limit for brevity
     limit = 2
@@ -263,4 +249,4 @@ def test_populate(
             assert row.chunk_id.startswith(str(row.appid))
             assert row.source == appid
             assert row.total_length > 0
-            assert len(row.embedding) == embedding_size
+            assert len(row.embedding) == mock_embedder.embedding_size
