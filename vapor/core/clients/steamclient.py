@@ -13,9 +13,7 @@ class SteamClient(Steam):
     """`steam_web_api.Steam` class implemented for use with Vapor"""
 
     def __init__(
-        self,
-        steam_api_key: str,
-        steamid: str,
+        self, steam_api_key: str, steamid: str,
     ):
         super().__init__(steam_api_key)
         self.steamid = steamid
@@ -97,17 +95,12 @@ class SteamClient(Steam):
         return self.get_user_details(self.steamid, fields)
 
     def get_user_friends(
-        self,
-        steamid: str,
-        fields: list[str] = ["steamid"],
-        limit: int | None = None,
+        self, steamid: str, fields: list[str] = ["steamid"], limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
         """Get friends list for `steamid` with details specifid by `fields`"""
         # Continue recursively populating from friends list
         friends_response = self._query_steam(
-            self.users.get_user_friends_list,
-            steam_id=steamid,
-            enriched=True,
+            self.users.get_user_friends_list, steam_id=steamid, enriched=True,
         )
         if "friends" not in friends_response:
             # NOTE: Silently ignoring these misses for now to avoid
@@ -141,10 +134,7 @@ class SteamClient(Steam):
             yield self._extract_fields(game, fields)
 
     def get_user_owned_games(
-        self,
-        steamid: str,
-        fields: list[str] = ["appid"],
-        limit: int | None = None,
+        self, steamid: str, fields: list[str] = ["appid"], limit: int | None = None,
     ) -> Generator[dict[str, Any], None, None]:
         """Get owned games for `steamid` with details specified by `fields`."""
         games_response = self._query_steam(self.users.get_owned_games, steam_id=steamid)

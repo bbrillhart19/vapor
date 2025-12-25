@@ -36,9 +36,7 @@ def test_connection_failure(mocker):
     # the functions first then initialize to test
     # Test connection failure with ServiceUnavailable
     mocker.patch.object(
-        Driver,
-        "verify_connectivity",
-        side_effect=ServiceUnavailable,
+        Driver, "verify_connectivity", side_effect=ServiceUnavailable,
     )
     # TODO: Could use pytest-time instant sleep
     with pytest.raises(ServiceUnavailable):
@@ -358,9 +356,7 @@ def test_set_game_description_embeddings(neo4j_client: Neo4jClient):
 def test_set_vector_index(neo4j_client: Neo4jClient):
     """Tests setting a vector index on a node parameter with `Neo4jClient`"""
     neo4j_client._set_vector_index(
-        index_name="test",
-        node="Test",
-        embedding_dimension=10,
+        index_name="test", node="Test", embedding_dimension=10,
     )
     cypher = """SHOW VECTOR INDEXES"""
     result = neo4j_client._read(cypher)
@@ -455,9 +451,7 @@ def test_game_descriptions_semantic_search(
 
     # Run semantic search with same embedding, should return same mock chunk
     result = neo4j_client.game_descriptions_semantic_search(
-        embedding=embedding,
-        n_neighbors=1,
-        min_score=0.0,
+        embedding=embedding, n_neighbors=1, min_score=0.0,
     )
     assert not result.empty
     row = result.iloc[0]

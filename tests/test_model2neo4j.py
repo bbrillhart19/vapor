@@ -14,10 +14,7 @@ def test_generate_chunks():
     # Generate chunks for test appid and verify
     appid = 1000
     chunks = model2neo4j.generate_game_description_chunks(
-        appid,
-        game_doc,
-        chunk_size=50,
-        chunk_overlap=10,
+        appid, game_doc, chunk_size=50, chunk_overlap=10,
     )
     for i, chunk in enumerate(chunks):
         assert chunk["text"]
@@ -51,8 +48,7 @@ def test_embed_game_descriptions(
 
     # Run the embedding process w/ mocked embedder
     model2neo4j.embed_game_descriptions(
-        embedder=mock_embedder,
-        neo4j_client=neo4j_client,
+        embedder=mock_embedder, neo4j_client=neo4j_client,
     )
 
     # Check embeddings

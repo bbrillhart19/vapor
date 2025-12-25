@@ -8,7 +8,6 @@ DEFAULT_OLLAMA_LLM = "granite4:micro-h"
 
 
 class VaporLLM(ChatOllama):
-
     @classmethod
     def from_env(cls, **kwargs) -> VaporLLM:
         model = utils.get_env_var("OLLAMA_LLM", DEFAULT_OLLAMA_LLM)

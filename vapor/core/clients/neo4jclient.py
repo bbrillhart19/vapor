@@ -41,10 +41,7 @@ class Neo4jClient(object):
         """Initialize a `Neo4jClient` from default environment variables"""
         return cls(
             uri=utils.get_env_var("NEO4J_URI"),
-            auth=(
-                utils.get_env_var("NEO4J_USER"),
-                utils.get_env_var("NEO4J_PW"),
-            ),
+            auth=(utils.get_env_var("NEO4J_USER"), utils.get_env_var("NEO4J_PW"),),
             database=utils.get_env_var("NEO4J_DATABASE"),
         )
 
@@ -355,11 +352,7 @@ class Neo4jClient(object):
                 parameters of `steamid` and `personaname`.
         """
         validated_friends = self._validate_node_fields(
-            nodes=friends,
-            defaults={
-                "steamid": None,
-                "personaname": "Unavailable",
-            },
+            nodes=friends, defaults={"steamid": None, "personaname": "Unavailable",},
         )
         cypher = """
             MATCH (u:User {steamId: $steamid})
@@ -398,12 +391,7 @@ class Neo4jClient(object):
                 parameters of `appid` and `name`.
         """
         validated_games = self._validate_node_fields(
-            nodes=games,
-            defaults={
-                "appid": None,
-                "name": None,
-                "playtime_forever": 0,
-            },
+            nodes=games, defaults={"appid": None, "name": None, "playtime_forever": 0,},
         )
         cypher = """
             MATCH (u:User {steamId: $steamid})
@@ -461,11 +449,7 @@ class Neo4jClient(object):
                 is a member of, including properties of
         """
         validated_genres = self._validate_node_fields(
-            nodes=genres,
-            defaults={
-                "id": None,
-                "description": None,
-            },
+            nodes=genres, defaults={"id": None, "description": None,},
         )
         cypher = """
             MATCH (g:Game {appId: $appid})
@@ -650,10 +634,7 @@ class Neo4jClient(object):
         return result.sort_values(by="distance", ignore_index=True)
 
     def game_descriptions_semantic_search(
-        self,
-        embedding: list[float],
-        n_neighbors: int,
-        min_score: float,
+        self, embedding: list[float], n_neighbors: int, min_score: float,
     ) -> pd.DataFrame:
         """Semantic similarity search with the game description embeddings"""
         cypher = """
@@ -671,8 +652,5 @@ class Neo4jClient(object):
                 score
         """
         return self._read(
-            cypher,
-            embedding=embedding,
-            n_neighbors=n_neighbors,
-            min_score=min_score,
+            cypher, embedding=embedding, n_neighbors=n_neighbors, min_score=min_score,
         )

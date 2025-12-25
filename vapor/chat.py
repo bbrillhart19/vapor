@@ -17,9 +17,7 @@ def handle_chat(agent: CompiledStateGraph, context: VaporContext) -> None:
     human_msg = HumanMessage(msg)
 
     for event in agent.stream(
-        {"messages": [human_msg]},
-        context=context,
-        stream_mode="values",
+        {"messages": [human_msg]}, context=context, stream_mode="values",
     ):
         event["messages"][-1].pretty_print()
 
@@ -42,10 +40,7 @@ def chat() -> None:
     logger.info(f"Initializing LLM Agent...")
     llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096)
     agent: CompiledStateGraph = create_agent(
-        model=llm,
-        tools=GAME_TOOLS,
-        context_schema=VaporContext,
-        system_prompt=prompt,
+        model=llm, tools=GAME_TOOLS, context_schema=VaporContext, system_prompt=prompt,
     )
 
     logger.success(f"Successfully initialized {llm.model} >>>")

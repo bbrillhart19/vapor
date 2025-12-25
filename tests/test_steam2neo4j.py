@@ -29,9 +29,7 @@ def test_populate_friends(
             yield steam_users[friendid]
 
     mocker.patch.object(
-        SteamClient,
-        "get_user_friends",
-        side_effect=mocked_friends,
+        SteamClient, "get_user_friends", side_effect=mocked_friends,
     )
     # Run the friends population method w/ a small limit to ensure brevity
     limit = 2
@@ -92,15 +90,11 @@ def test_populate_games(
             yield game
 
     mocker.patch.object(
-        SteamClient,
-        "get_user_owned_games",
-        side_effect=mocked_owned_games,
+        SteamClient, "get_user_owned_games", side_effect=mocked_owned_games,
     )
     # Just use the same mocked function for recently played
     mocker.patch.object(
-        SteamClient,
-        "get_user_recently_played_games",
-        side_effect=mocked_owned_games,
+        SteamClient, "get_user_recently_played_games", side_effect=mocked_owned_games,
     )
     # Run the games population method
     steam2neo4j.populate_games(steam_client, neo4j_client, limit=limit)
@@ -157,9 +151,7 @@ def test_populate_genres(
         return steam_games[appid]["genres"]
 
     mocker.patch.object(
-        SteamClient,
-        "get_game_genres",
-        side_effect=mocked_game_genres,
+        SteamClient, "get_game_genres", side_effect=mocked_game_genres,
     )
     # Run the genres population method
     steam2neo4j.populate_genres(steam_client, neo4j_client)
@@ -206,9 +198,7 @@ def test_populate_game_descriptions(
         return f"Game Description for {appid}"
 
     mocker.patch.object(
-        SteamClient,
-        "about_the_game",
-        side_effect=mocked_game_description,
+        SteamClient, "about_the_game", side_effect=mocked_game_description,
     )
     # Run the game descriptions population method
     steam2neo4j.populate_game_descriptions(steam_client, neo4j_client)

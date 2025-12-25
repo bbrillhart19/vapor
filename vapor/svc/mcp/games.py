@@ -86,9 +86,7 @@ def find_similar_games(
     embedding = runtime.context.embedder.embed_query(summarized_description)
     # Run semantic search over game descriptions
     result = runtime.context.neo4j_client.game_descriptions_semantic_search(
-        embedding=embedding,
-        n_neighbors=10,
-        min_score=0.5,
+        embedding=embedding, n_neighbors=10, min_score=0.5,
     )
     # Return nothing if empty
     if result.empty:

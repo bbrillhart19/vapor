@@ -1,3 +1,44 @@
+[project]
+name = "vapor"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "flake8",
+  "pytest",
+  "pytest-coverage",
+  "pytest-mock",
+]
+core = [
+  "python-steam-api",
+  "neo4j-driver",
+  "html2text",
+  "rich",
+  "dotenv",
+  "pandas",
+  "loguru",
+  "langchain",
+  "langchain-ollama",
+  "langchain-text-splitters",
+]
+svc = [
+  "vapor[core]", 
+  "fastmcp",
+]
+all = [
+  "vapor[core,svc]"
+]
+
 [tool.pytest.ini_options]
 addopts = [
   "--color=yes",
@@ -17,6 +58,10 @@ markers = [
 ]
 minversion = "6.0"
 testpaths = "tests/"
+
+[tool.mypy]
+ignore_missing_imports = true
+follow_untyped_imports = true
 
 [tool.coverage.report]
 exclude_lines = [
