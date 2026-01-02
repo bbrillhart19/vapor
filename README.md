@@ -6,6 +6,7 @@
     <a href="https://store.steampowered.com/"><img alt="Steam" src="https://img.shields.io/badge/Steam-%23000000.svg?logo=steam&logoColor=white"></a>
     <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
     <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
+    <a href="https://gofastmcp.com/getting-started/welcome"><img alt="FastMCP" src=https://img.shields.io/badge/MCP-FastMCP_2.x-blue></a>
 </p>
 <p align="center">
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
@@ -108,32 +109,23 @@ Then you can ask questions about the Steam data. Currently, this has very basic 
 ```bash
 Ask a question:
 >>> What are some world war 2 games?
-================================ Human Message =================================
+Here are some World War 2 games available:
 
-What are some world war 2 games?
-================================== Ai Message ==================================
-Tool Calls:
-  find_similar_games (d4d0d2b2-e2d2-4ee3-94bb-5b774a368483)
- Call ID: d4d0d2b2-e2d2-4ee3-94bb-5b774a368483
-  Args:
-    summarized_description: World War II game
-================================= Tool Message =================================
-Name: find_similar_games
-### ... tool result output ... ###
-================================== Ai Message ==================================
+ 1 Company of Heroes - Legacy Edition - A real-time strategy game that begins with the D-Day Invasion of Normandy and
+   follows Allied soldiers through pivotal WWII battles. Features cinematic single-player campaign, advanced squad AI,
+   and stunning visuals.
+ 2 Darkest Hour: Europe '44-'45 - A first-person shooter with a terrifying suppression system, over 100 iconic weapons,
+   and 90+ armored vehicles including late-war heavy tanks like the M18 Hellcat and King Tiger.
+ 3 Day of Defeat - An intense team-based FPS set in the WWII European Theatre of Operations. Players choose from
+   infantry classes with historical weaponry and complete mission-specific objectives based on key historical
+   operations.
+ 4 Mare Nostrum - Set in North Africa, this game features British, Australian, German, and Italian forces with authentic
+   weaponry and 10 fully realized vehicles across 8 different battle environments.
+ 5 Red Orchestra: Ostfront 41-45 - The only FPS focused on the WWII Russian Front, featuring realistic bullet
+   ballistics, 16 fully realized vehicles, 30 authentic infantry weapons, and support for 50+ player online multiplayer.
 
-Here are several World War II games you might enjoy, along with a quick snapshot of what each offers:
-
-| Game | Steam AppID | Highlight |
-|------|-------------|-----------|
-| **Call of Duty: World at War** | 10090 | A gritty first‑person shooter that takes you deep into both the European and Pacific fronts, featuring realistic combat, Kamikaze attacks, and a raw, unfiltered WWII experience. |
-| **Company of Heroes – Legacy Edition** | 4560 | A real‑time strategy title that places you in the boots of Allied soldiers during D‑Day and beyond, with advanced squad AI, dynamic environments, and a cinematic single‑player campaign. |
-| **Darkest Hour: Europe ’44‑’45** | 1280 | A multiplayer tactical shooter that lets you play as one of seven nations, featuring over 100 authentic battles from Normandy to Berlin, complete with sandbags, foxholes, and logistics. |
-| **Day of Defeat** | 30 | A classic Axis‑vs‑Allied team‑based FPS that focuses on squad tactics and historically accurate weaponry across key WWII map settings. |
-| **Mare Nostrum** | 1230 | Focuses on the North African campaign with realistic infantry and vehicle combat, offering a mix of urban street fighting and open‑desert tank battles. |
-| **Tom Clancy's Rainbow Six Siege X** | 359550 | While not strictly WWII, it’s a tactical shooter that can appeal to fans of tactical team play and historical themes. |
-
-These titles cover a range of genres—first‑person shooters, tactical shooters, and real‑time strategy—so you can pick the style that appeals most to you.
+These games cover various aspects of WWII combat including strategy, first-person shooting, and different theaters of
+war from Europe to North Africa.
 ```
 
 ## Development
