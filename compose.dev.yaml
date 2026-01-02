@@ -11,6 +11,10 @@ services:
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
     # Map to different ports than the production service
+    # NOTE: This does create an issue of the user needing to specify 
+    # NEO4J_URI=neo4j://localhost:7688 (instead of 7687) and there is
+    # not a convenient way to flip back and forth without creating an
+    # additional dev.env file and specifying that in the entire dev structure.
     ports:
       - 7475:7474
       - 7688:7687
