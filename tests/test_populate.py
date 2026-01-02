@@ -27,7 +27,10 @@ def test_init_delete(mocker, neo4j_client: Neo4jClient):
     mocker.patch.object(
         SteamClient,
         "get_primary_user_details",
-        return_value={"steamid": globals.STEAM_ID, "personaname": "user0",},
+        return_value={
+            "steamid": globals.STEAM_ID,
+            "personaname": "user0",
+        },
     )
     # Run populate with init and delete
     populate.populate_neo4j(init=True, delete=True)
@@ -65,7 +68,10 @@ def test_populate(
     mocker.patch.object(
         SteamClient,
         "get_primary_user_details",
-        return_value={"steamid": globals.STEAM_ID, "personaname": "user0",},
+        return_value={
+            "steamid": globals.STEAM_ID,
+            "personaname": "user0",
+        },
     )
 
     # Mock the steam client to return friends per user
@@ -77,7 +83,9 @@ def test_populate(
             yield steam_users[friendid]
 
     mocker.patch.object(
-        SteamClient, "get_user_friends", side_effect=mocked_friends,
+        SteamClient,
+        "get_user_friends",
+        side_effect=mocked_friends,
     )
 
     # Mock the steam client to return owned and
@@ -90,11 +98,15 @@ def test_populate(
             yield game
 
     mocker.patch.object(
-        SteamClient, "get_user_owned_games", side_effect=mocked_owned_games,
+        SteamClient,
+        "get_user_owned_games",
+        side_effect=mocked_owned_games,
     )
     # Just use the same mocked function for recently played
     mocker.patch.object(
-        SteamClient, "get_user_recently_played_games", side_effect=mocked_owned_games,
+        SteamClient,
+        "get_user_recently_played_games",
+        side_effect=mocked_owned_games,
     )
 
     # Mock the steam client to return genres for each game
@@ -102,7 +114,9 @@ def test_populate(
         return steam_games[appid]["genres"]
 
     mocker.patch.object(
-        SteamClient, "get_game_genres", side_effect=mocked_game_genres,
+        SteamClient,
+        "get_game_genres",
+        side_effect=mocked_game_genres,
     )
 
     # Mock the steam client to return description for each game
@@ -110,7 +124,9 @@ def test_populate(
         return f"Game Description for {appid}"
 
     mocker.patch.object(
-        SteamClient, "about_the_game", side_effect=mocked_game_description,
+        SteamClient,
+        "about_the_game",
+        side_effect=mocked_game_description,
     )
 
     # Mock the from_env() for embedding model

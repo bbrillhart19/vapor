@@ -111,7 +111,9 @@ def mock_embedder(mocker):
         return [[0.5] * embedding_size] * len(texts)
 
     mocker.patch.object(
-        embeddings.VaporEmbeddings, "embed_documents", side_effect=mock_embed_docs,
+        embeddings.VaporEmbeddings,
+        "embed_documents",
+        side_effect=mock_embed_docs,
     )
 
     return embeddings.VaporEmbeddings(model=model)
