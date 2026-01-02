@@ -30,6 +30,7 @@ core = [
   "langchain",
   "langchain-ollama",
   "langchain-text-splitters",
+  "langchain-mcp-adapters",
 ]
 svc = [
   "vapor[core]", 
