@@ -4,12 +4,16 @@ from rich.progress import track
 from loguru import logger
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vapor.models.embeddings import VaporEmbeddings
-from vapor.clients import Neo4jClient
+from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.clients import Neo4jClient
 
 
 def generate_game_description_chunks(
-    appid: int, text: str, chunk_size: int = 500, chunk_overlap: int = 50, **kwargs,
+    appid: int,
+    text: str,
+    chunk_size: int = 500,
+    chunk_overlap: int = 50,
+    **kwargs,
 ) -> Generator[dict[str, Any], None, None]:
     """Generate chunks of `text` representing the game description
     for `appid` with `RecursiveCharacterTextSplitter` from `langchain`.
@@ -70,7 +74,9 @@ def embed_game_descriptions(
 
     # Iterate over the descriptions, chunk, embed, and write
     for game in track(
-        game_descriptions_df.itertuples(), description="Embedding:", total=total_games,
+        game_descriptions_df.itertuples(),
+        description="Embedding:",
+        total=total_games,
     ):
         # Extract chunks
         chunks: list[dict[str, Any]] = []

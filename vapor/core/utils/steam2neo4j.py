@@ -1,7 +1,7 @@
 from rich.progress import track
 from loguru import logger
 
-from vapor import clients
+from vapor.core import clients
 
 
 def populate_friends(
@@ -41,7 +41,11 @@ def populate_friends(
 
         # Recurse using primary user id
         return populate_friends(
-            steam_client, neo4j_client, primary_user["steamid"], hops, limit,
+            steam_client,
+            neo4j_client,
+            primary_user["steamid"],
+            hops,
+            limit,
         )
 
     # Get friends list, add to db and recurse for each (decrement hops)
@@ -58,7 +62,11 @@ def populate_friends(
 
     for friend in friends:
         populate_friends(
-            steam_client, neo4j_client, friend["steamid"], hops - 1, limit,
+            steam_client,
+            neo4j_client,
+            friend["steamid"],
+            hops - 1,
+            limit,
         )
 
 
@@ -115,7 +123,8 @@ def populate_games(
 
 
 def populate_genres(
-    steam_client: clients.SteamClient, neo4j_client: clients.Neo4jClient,
+    steam_client: clients.SteamClient,
+    neo4j_client: clients.Neo4jClient,
 ) -> None:
     """Populate the neo4j database with genres for all games
     in the database.
@@ -139,7 +148,8 @@ def populate_genres(
 
 
 def populate_game_descriptions(
-    steam_client: clients.SteamClient, neo4j_client: clients.Neo4jClient,
+    steam_client: clients.SteamClient,
+    neo4j_client: clients.Neo4jClient,
 ) -> None:
     """Populate the neo4j database with game descriptions for all games
     in the database.

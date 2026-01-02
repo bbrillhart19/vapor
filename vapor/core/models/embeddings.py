@@ -3,11 +3,15 @@ from typing import Any
 
 from langchain_ollama import OllamaEmbeddings
 
-from vapor.utils import utils
+from vapor.core.utils import utils
 
 DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma"
 
-EMBEDDING_PARAMS = {"embeddinggemma": {"embedding_size": 768,}}
+EMBEDDING_PARAMS = {
+    "embeddinggemma": {
+        "embedding_size": 768,
+    }
+}
 
 
 class VaporEmbeddings(OllamaEmbeddings):

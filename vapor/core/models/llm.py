@@ -1,7 +1,7 @@
 from __future__ import annotations
 from langchain_ollama import ChatOllama
 
-from vapor.utils import utils
+from vapor.core.utils import utils
 
 
 DEFAULT_OLLAMA_LLM = "granite4:micro-h"

@@ -1,8 +1,8 @@
 from loguru import logger
 
-from vapor import clients
-from vapor.models.embeddings import VaporEmbeddings
-from vapor.utils import steam2neo4j, model2neo4j
+from vapor.core import clients
+from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.utils import steam2neo4j, model2neo4j
 
 
 @logger.catch(reraise=True)
@@ -54,7 +54,7 @@ def populate_neo4j(
 
     # Populate genres via all games
     if genres:
-        logger.info("Populating genees from available Steam games...")
+        logger.info("Populating genres from available Steam games...")
         steam2neo4j.populate_genres(steam_client, neo4j_client)
 
     # Populate game descriptions for all games
@@ -77,7 +77,7 @@ def populate_neo4j(
 
 if __name__ == "__main__":
     import argparse
-    from vapor.utils import utils
+    from vapor.core.utils import utils
 
     parser = argparse.ArgumentParser(
         description="Set up and populate neo4j database with steam data for Vapor"
