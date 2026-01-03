@@ -32,6 +32,7 @@ class Neo4jClient(object):
         """Initialize the client to connect to the database
         at `uri` with the `auth` combo of `(username, password)`
         """
+        self.uri = uri
         self.driver = GraphDatabase.driver(uri=uri, auth=auth)
         self._database = database
         self._wait_for_connection(timeout, sleep_duration)
@@ -60,7 +61,7 @@ class Neo4jClient(object):
                 connected = True
             except ServiceUnavailable:
                 logger.warning(
-                    f"Connection attempt failed, time remaining={time_remaining}s"
+                    f"Connection attempt failed @ {self.uri}, time remaining={time_remaining}s"
                 )
                 sleep(sleep_duration)
                 time_remaining -= sleep_duration

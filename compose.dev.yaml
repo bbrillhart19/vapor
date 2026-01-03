@@ -1,4 +1,6 @@
 ### Compose structure for Vapor development and testing ###
+# TODO: Get rid of this entirely. Run it explicitly for testing,
+# but otherwise we should only use one compose file.
 services:
   # Neo4j GraphDB 
   neo4j-dev:
@@ -15,13 +17,27 @@ services:
     # NEO4J_URI=neo4j://localhost:7688 (instead of 7687) and there is
     # not a convenient way to flip back and forth without creating an
     # additional dev.env file and specifying that in the entire dev structure.
+    # See todo at the top.
     ports:
-      - 7475:7474
-      - 7688:7687
+      - 7474:7474
+      - 7687:7687
     # Rename the network so it doesn't conflict with production service
     networks:
-      dev: {}
+      - dev
+
+  mcp-dev:
+    image: vapor-mcp:latest
+    volumes:
+      - ./.env:/app/.env
+    ports:
+      - 8000:8000
+    command: fastmcp run vapor/svc/mcp/run.py:mcp --transport http --port 8000
+    depends_on:
+      - neo4j-dev
+    networks:
+      - dev
 
 networks:
-  dev: {}
+  dev: 
+    driver: bridge
     

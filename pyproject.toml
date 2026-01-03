@@ -32,6 +32,7 @@ core = [
   "langchain-text-splitters",
   "langchain-mcp-adapters",
 ]
+# TODO: Split into MCP/API/other services using same auth
 svc = [
   "vapor[core]", 
   "fastmcp",
