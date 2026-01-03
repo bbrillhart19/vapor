@@ -20,4 +20,18 @@ services:
       - 7687:7687
     restart: always
 
-# TODO: FastMCP - see dev.
+  # FastMCP Server
+  mcp:
+    image: vapor-mcp
+    build:
+      context: .
+      dockerfile: ./dockerfiles/vapor-mcp.dockerfile
+    env_file:
+      - ./.env
+    environment:
+      - FASTMCP_HOST=0.0.0.0
+    command: fastmcp run vapor/svc/mcp/run.py:mcp --transport http --port 8000
+    ports:
+      - 8000:8000
+    depends_on:
+      - neo4j

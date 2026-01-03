@@ -13,8 +13,5 @@ COPY ./vapor/core ./vapor/core
 COPY ./vapor/svc/__init__.py ./vapor/svc/__init__.py
 COPY ./vapor/svc/mcp ./vapor/svc/mcp
 
-# NOTE: Need to copy environment file in, probably shouldn't need to
-COPY ./.env ./.env
-
 # Install the package
 RUN pip install -e .[svc]
