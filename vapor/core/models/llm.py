@@ -11,4 +11,11 @@ class VaporLLM(ChatOllama):
     @classmethod
     def from_env(cls, **kwargs) -> VaporLLM:
         model = utils.get_env_var("OLLAMA_LLM", DEFAULT_OLLAMA_LLM)
-        return cls(model=model, **kwargs)
+        api_key = utils.get_env_var("OLLAMA_API_KEY", None)
+        base_url = "https://ollama.com"
+        return cls(
+            model=model,
+            base_url=base_url,
+            client_kwargs={"headers": {"Authorization": f"Bearer {api_key}"}},
+            **kwargs,
+        )
