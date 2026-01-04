@@ -1,5 +1,19 @@
 ### Compose structure to coordinate Vapor and its dependencies ###
 services:
+  # Ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ${VAPOR_DATA_PATH}/ollama:/root/.ollama
+    ports:
+      - 11434:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # Neo4j GraphDB 
   neo4j:
     image: neo4j:2025.05.0
@@ -34,4 +48,7 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - neo4j
+      - neo4j:
+        condition: service_healthy
+      - ollama:
+        condition: service_healthy
