@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any
 
-import ollama
+from loguru import logger
 from langchain_ollama import OllamaEmbeddings
+from ollama import Client
 
 from vapor.core.utils import utils
 
@@ -27,7 +28,7 @@ class VaporEmbeddings(OllamaEmbeddings):
         model = utils.get_env_var(
             "OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL
         )
-        base_url = utils.get_env_var("OLLAMA_LOCAL_HOST", "http://vapor-ollama:11433")
+        base_url = utils.get_env_var("OLLAMA_LOCAL_HOST", "http://localhost:11433")
         return cls(model=model, base_url=base_url, **kwargs)
 
     def _get_param(self, param: str) -> Any:
@@ -38,8 +39,25 @@ class VaporEmbeddings(OllamaEmbeddings):
         return self._get_param("embedding_size")
 
     def pull(self) -> None:
+        assert isinstance(self._client, Client)
         # Get all available models with ollama client
         list_response = self._client.list()
-        # TODO: Parse ListResponse for model names
+        # Parse ListResponse for model names
+        models = [
+            m.model.split(":")[0]
+            for m in list_response.models
+            if isinstance(m.model, str)
+        ]
         # Check if model available, if not pull it
-        prog_response = self._client.pull(self.model)
+        if self.model in models:
+            logger.info(f"Embedding model={self.model} found, skipping pull")
+        else:
+            logger.info(f"Embedding model={self.model} not found, pulling...")
+            pull_response = self._client.pull(self.model)
+            if pull_response.status == "success":
+                logger.success(f"Pulled {self.model} successfully!")
+            else:
+                raise RuntimeError(
+                    f"Unable to pull {self.model}, aborting!"
+                    + f"\nPull Response: {pull_response}"
+                )

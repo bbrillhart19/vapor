@@ -12,6 +12,7 @@ logger.info("Setting up Neo4JClient...")
 neo4j_client = Neo4jClient.from_env()
 logger.info("Setting up Embedding Model...")
 embedder = VaporEmbeddings.from_env()
+embedder.pull()
 
 logger.info("Setting up Games Tools...")
 games = GamesTools(

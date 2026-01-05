@@ -66,6 +66,7 @@ def populate_neo4j(
     if embed:
         logger.info("Setting up embedding model...")
         embedder = VaporEmbeddings.from_env()
+        embedder.pull()
 
         texts_to_embed = set(embed)
         if "game-descriptions" in texts_to_embed:
