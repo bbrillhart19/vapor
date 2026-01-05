@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
+import ollama
 from langchain_ollama import OllamaEmbeddings
 
 from vapor.core.utils import utils
@@ -26,7 +27,8 @@ class VaporEmbeddings(OllamaEmbeddings):
         model = utils.get_env_var(
             "OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL
         )
-        return cls(model=model, **kwargs)
+        base_url = utils.get_env_var("OLLAMA_LOCAL_HOST", "http://vapor-ollama:11433")
+        return cls(model=model, base_url=base_url, **kwargs)
 
     def _get_param(self, param: str) -> Any:
         return EMBEDDING_PARAMS[self.model][param]
@@ -34,3 +36,10 @@ class VaporEmbeddings(OllamaEmbeddings):
     @property
     def embedding_size(self) -> int:
         return self._get_param("embedding_size")
+
+    def pull(self) -> None:
+        # Get all available models with ollama client
+        list_response = self._client.list()
+        # TODO: Parse ListResponse for model names
+        # Check if model available, if not pull it
+        prog_response = self._client.pull(self.model)

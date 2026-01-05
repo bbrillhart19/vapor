@@ -36,7 +36,7 @@ async def chat() -> None:
     prompt = load_prompt("chat")
 
     logger.info(f"Initializing LLM Agent...")
-    llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096)
+    llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096, validate_model_on_init=True)
 
     logger.info("Connecting to MCP Server...")
     client = MultiServerMCPClient(
