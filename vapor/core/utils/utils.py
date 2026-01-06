@@ -2,6 +2,7 @@
 
 from typing import Any
 import os
+from pathlib import Path
 
 
 def get_env_var(env_key: str, default: str | None = None) -> str:
@@ -31,3 +32,10 @@ def set_env(env_mapping: dict[str, Any]) -> None:
     """
     for k, v in env_mapping.items():
         os.environ[k] = v
+
+
+def in_docker() -> bool:
+    """Checks for `/.dockerenv` file to determine if we are in a docker process.
+    This is mildly hacky but useful in case, for example, env vars need adjustment.
+    """
+    return Path("/.dockerenv").exists()

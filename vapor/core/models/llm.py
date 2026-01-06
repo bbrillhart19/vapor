@@ -15,6 +15,7 @@ class VaporLLM(ChatOllama):
         api_key = utils.get_env_var("OLLAMA_API_KEY", None)
         client_kwargs = {"headers": {"Authorization": f"Bearer {api_key}"}}
 
+        logger.info(f"Initializing chat model={model} @ {base_url}")
         return cls(
             model=model,
             base_url=base_url,

@@ -1,7 +1,4 @@
-### Base Dockerfile to support the Vapor package ###
-# NOTE: This dockerfile is not being used and is just here
-# as a reference for the moment.
-# TODO: Ollama needs to be installed for embedding model?
+### Dockerfile to support Vapor MCP (+ core) ###
 FROM python:3.12-slim
 
 WORKDIR /app

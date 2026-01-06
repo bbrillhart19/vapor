@@ -40,8 +40,14 @@ class Neo4jClient(object):
     @classmethod
     def from_env(cls) -> Neo4jClient:
         """Initialize a `Neo4jClient` from default environment variables"""
+        if utils.in_docker():
+            neo4j_hostname = utils.get_env_var("NEO4J_DOCKER_HOST_NAME", "vapor-neo4j")
+        else:
+            neo4j_hostname = "localhost"
+        neo4j_port = utils.get_env_var("NEO4J_BOLT_PORT", "vapor-neo4j")
+        neo4j_uri = f"neo4j://{neo4j_hostname}:{neo4j_port}"
         return cls(
-            uri=utils.get_env_var("NEO4J_URI"),
+            uri=neo4j_uri,
             auth=(
                 utils.get_env_var("NEO4J_USER"),
                 utils.get_env_var("NEO4J_PW"),

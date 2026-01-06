@@ -28,7 +28,15 @@ class VaporEmbeddings(OllamaEmbeddings):
         model = utils.get_env_var(
             "OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL
         )
-        base_url = utils.get_env_var("OLLAMA_LOCAL_HOST", "http://localhost:11433")
+        if utils.in_docker():
+            ollama_hostname = utils.get_env_var(
+                "OLLAMA_DOCKER_HOST_NAME", "vapor-ollama"
+            )
+        else:
+            ollama_hostname = "localhost"
+        ollama_port = utils.get_env_var("OLLAMA_PORT", "11434")
+        base_url = f"http://{ollama_hostname}:{ollama_port}"
+        logger.info(f"Initializing embedding model={model} @ {base_url}")
         return cls(model=model, base_url=base_url, **kwargs)
 
     def _get_param(self, param: str) -> Any:
