@@ -1,21 +1,67 @@
 ### Compose structure to coordinate Vapor and its dependencies ###
+# Resources (shared configs)
+x-nvidia-gpu: &nvidia-gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+# TODO: AMD GPU support
+
+# Base services (shared configs)
+x-ollama: &ollama
+  image: ollama/ollama:latest
+  container_name: ${OLLAMA_DOCKER_HOST_NAME}
+  volumes:
+    - ${VAPOR_DATA_PATH}/ollama:/root/.ollama
+  environment:
+    - OLLAMA_KEEP_ALIVE=24h
+  ports:
+    - ${OLLAMA_PORT}:11434
+  healthcheck:
+    test: ollama list
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 10s
+    start_interval: 2s
+  restart: unless-stopped
+
+x-mcp: &mcp
+  image: vapor-mcp
+  container_name: ${MCP_DOCKER_HOST_NAME}
+  build:
+    context: .
+    dockerfile: ./dockerfiles/vapor-mcp.dockerfile
+  volumes:
+    - ./vapor:/app/vapor:ro
+  env_file:
+    - ./.env
+  environment:
+    - FASTMCP_HOST=0.0.0.0
+  command: fastmcp run vapor/svc/mcp/run.py:mcp --transport http --port 8000
+  ports:
+    - ${MCP_PORT}:8000
+  restart: unless-stopped
+
 services:
   # Ollama
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ${OLLAMA_DOCKER_HOST_NAME}
-    volumes:
-      - ${VAPOR_DATA_PATH}/ollama:/root/.ollama
-    ports:
-      - ${OLLAMA_PORT}:11434
-    healthcheck:
-      test: ollama list
-      interval: 1m
-      timeout: 2s
-      retries: 5
-      start_period: 10s
-      start_interval: 2s
-    restart: unless-stopped
+  ollama-cpu:
+    <<: *ollama
+    profiles:
+      - cpu
+
+  ollama-nvidia:
+    <<: 
+      - *ollama
+      - *nvidia-gpu
+    profiles:
+      - nvidia-gpu
+
+  # TODO: AMD GPU support
 
   # Neo4j GraphDB 
   neo4j:
@@ -46,24 +92,22 @@ services:
     restart: unless-stopped
 
   # FastMCP Server
-  mcp:
-    image: vapor-mcp
-    container_name: ${MCP_DOCKER_HOST_NAME}
-    build:
-      context: .
-      dockerfile: ./dockerfiles/vapor-mcp.dockerfile
-    # volumes:
-    #   - ./vapor:/app/vapor:ro
-    env_file:
-      - ./.env
-    environment:
-      - FASTMCP_HOST=0.0.0.0
-    command: fastmcp run vapor/svc/mcp/run.py:mcp --transport http --port 8000
-    ports:
-      - ${MCP_PORT}:8000
-    restart: unless-stopped
+  mcp-cpu:
+    <<: *mcp
     depends_on:
       neo4j: 
         condition: service_healthy
-      ollama:
+      ollama-cpu:
         condition: service_healthy
+    profiles:
+      - cpu
+
+  mcp-nvidia:
+    <<: *mcp
+    depends_on:
+      neo4j: 
+        condition: service_healthy
+      ollama-nvidia:
+        condition: service_healthy
+    profiles:
+      - nvidia-gpu

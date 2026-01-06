@@ -30,7 +30,7 @@ Before proceeding, clone the repository to your system.
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
 ```shell
-pip install .
+pip install -e .[core]
 ```
 
 ### Setup Environment
@@ -38,7 +38,9 @@ A few environment variables need to be acquired and set for your personal use. C
 ```shell
 cp .env.example .env
 ```
-And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire a Steam Web API Key [here](https://steamcommunity.com/dev).
+And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire the following:
+  - Steam Web API Key [here](https://steamcommunity.com/dev).
+  - Create an account at [Ollama](https://docs.ollama.com/) and generate an API key [here](https://ollama.com/settings/keys).
 
 **NOTE:** You can set a custom path to environment if you wish with:
 ```shell
@@ -48,42 +50,28 @@ export VAPOR_ENV=path/to/your.env
 ### Docker Installation
 This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
 
-#### Windows/Mac
-Install Docker Desktop [for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) or [for Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
-
 #### WSL/Linux
 Install Docker via the CLI:
 ```shell
 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
+**For NVIDA GPU Support** you will also need to install NVIDIA Container Toolkit, see instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to reboot after installing!
 
-### Ollama
-The project uses open-source models with [Ollama](https://docs.ollama.com/) and you will need to create an account (it's free) and then download `Ollama` depending on your OS by following the instructions [here](https://ollama.com/download/linux)
+#### Windows/MacOS (Docker Desktop)
+*Not supported yet*
 
-#### Embeddings
-*TODO: Script this and make it configurable.* Pull `embeddinggemma` with:
+### Start Services
+The backend services, which include Ollama, Neo4j, and a FastMCP server, should be spun up with:
 ```shell
-ollama pull embeddinggemma
+# If you have an NVIDIA GPU (recommended):
+docker compose --profile nvidia-gpu up -d
+# If you have an AMD GPU (not supported yet!):
+# TODO
+# Otherwise, run on CPU:
+docker compose --profile cpu up -d
 ```
-
-#### Reasoning (Cloud)
-*TODO: Script this and make it configurable.* Using cloud models specifically is what requires the Ollama account. Doing so allows the common person to use much larger open-source models, though there are limits for the free tier. Sign-in, pull and run, for example, `deepseek` with:
-```shell
-ollama signin
-ollama pull deepseek-v3.1:671b-cloud
-ollama run deepseek-v3.1:671b-cloud
-```
-
-### Start Neo4j
-[Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
-```shell
-docker compose up -d
-```
-Navigate to http://localhost:7474 in your browser and view the `neo4j` database. Use the `NEO4J_USER` and `NEO4J_PW` values to log in from your [environment](#setup-environment). If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
-
 
 ## Usage
-
 ### Neo4j Database Population
 First, you will need to populate the graph with data from Steam. This process will set you as the central node and populate in hops outwards from your friends (friends of friends, ..., etc.). See the usage here:
 ```shell
@@ -145,7 +133,7 @@ Refer to this section only if you are developing the codebase.
 #### Vapor Development Package
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
-pip install -e .[dev]
+pip install -e .[dev,all]
 ```
 
 ### Code Formatting
