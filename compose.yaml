@@ -30,6 +30,23 @@ x-ollama: &ollama
     start_interval: 2s
   restart: unless-stopped
 
+x-neo4j: &neo4j
+  image: neo4j:2025.05.0
+  environment:
+    - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
+    - NEO4J_apoc_export_file_enabled=true
+    - NEO4J_apoc_import_file_enabled=true
+    - NEO4J_apoc_import_file_use__neo4j__config=true
+    - NEO4J_PLUGINS=["apoc"]
+    - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
+  healthcheck:
+    test: wget http://localhost:7474/browser -O -
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 30s
+    start_interval: 5s
+
 x-mcp: &mcp
   image: vapor-mcp
   container_name: ${MCP_DOCKER_HOST_NAME}
@@ -47,6 +64,9 @@ x-mcp: &mcp
     - ${MCP_PORT}:8000
   restart: unless-stopped
 
+# NOTE: All services should have a profile:
+# Resources - one of [cpu, nvidia-gpu]
+# Purpose - one of [default, dev]
 services:
   # Ollama
   ollama-cpu:
@@ -65,31 +85,29 @@ services:
 
   # Neo4j GraphDB 
   neo4j:
-    image: neo4j:2025.05.0
+    <<: *neo4j
     container_name: ${NEO4J_DOCKER_HOST_NAME}
     volumes:
       - ${VAPOR_DATA_PATH}/neo4j/logs:/logs
       - ${VAPOR_DATA_PATH}/neo4j/config:/config
       - ${VAPOR_DATA_PATH}/neo4j/data:/data
-      - ${VAPOR_DATA_PATH}/neo4j/plugin:/plugins
-    environment:
-      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
-      - NEO4J_apoc_export_file_enabled=true
-      - NEO4J_apoc_import_file_enabled=true
-      - NEO4J_apoc_import_file_use__neo4j__config=true
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
+      - ${VAPOR_DATA_PATH}/neo4j/plugin:/plugins    
     ports:
       - ${NEO4J_BROWSER_PORT}:7474
       - ${NEO4J_BOLT_PORT}:7687
-    healthcheck:
-      test: wget http://localhost:7474/browser -O -
-      interval: 1m
-      timeout: 2s
-      retries: 5
-      start_period: 30s
-      start_interval: 5s
     restart: unless-stopped
+    profiles:
+      - default
+
+  # Testing service only for neo4j (no volumes, different ports)
+  neo4j-dev:
+    <<: *neo4j
+    container_name: neo4j-dev 
+    ports:
+      - 7475:7474
+      - 7688:7687
+    profiles:
+      - dev
 
   # FastMCP Server
   mcp-cpu:

@@ -1,12 +1,13 @@
 #!/bin/bash
+# Don't set stop on error to make sure we continue to teardown
 
 # Extra arguments such as running a specific test
 test_args=$1
 # Always teardown dev services first just in case they are running
-bash scripts/dev/quit.sh
+docker compose --profile dev down
 # Start up the services
-bash scripts/dev/start.sh &&
+docker compose --profile dev up -d &&
 # Run tests
 pytest --cov=vapor $test_args 
 # Teardown services
-bash scripts/dev/quit.sh
+docker compose --profile dev down

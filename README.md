@@ -25,7 +25,6 @@ Before proceeding, clone the repository to your system.
 - Python
 - Pip
 - [Docker](#docker-installation)
-- [Ollama](#ollama)
 
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
@@ -46,6 +45,7 @@ And edit the `.env` file with the required values using the comments for each as
 ```shell
 export VAPOR_ENV=path/to/your.env
 ```
+**NOTE:** When the `.env.example` adds/removes variables, you will need to reflect these changes in your own `.env`.
 
 ### Docker Installation
 This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
@@ -57,18 +57,22 @@ sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
 **For NVIDA GPU Support** you will also need to install NVIDIA Container Toolkit, see instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to reboot after installing!
 
-#### Windows/MacOS (Docker Desktop)
-*Not supported yet*
+#### Windows
+Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+
+#### MacOS
+Install [Docker Desktop for MacOS](https://docs.docker.com/desktop/setup/install/mac-install/)
+
+**NOTE:** It is currently not possible to passthrough an Apple GPU to Ollama's docker container. It is not advisable to attempt to setup Vapor on a Mac because of this (embeddings for Neo4j ingestion will be very slow), but it is doable. For [developers](#development), however, GPU resources are not required.
 
 ### Start Services
-The backend services, which include Ollama, Neo4j, and a FastMCP server, should be spun up with:
+Make sure you have set the `RESOURCE_PROFILE` variable in your `.env` according to what your device has available, then startup the backend services (including Ollama, Neo4j, FastMCP):
 ```shell
-# If you have an NVIDIA GPU (recommended):
-docker compose --profile nvidia-gpu up -d
-# If you have an AMD GPU (not supported yet!):
-# TODO
-# Otherwise, run on CPU:
-docker compose --profile cpu up -d
+bash scripts/start.sh
+```
+Remember to shut down (if necessary) with:
+```shell
+bash scripts/stop.sh
 ```
 
 ## Usage
@@ -145,5 +149,5 @@ black vapor tests
 ### Unit Tests
 A convenience script has been set up to launch the necessary [development containers](compose.dev.yaml) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
-bash scripts/dev/run-tests.sh
+bash scripts/run-tests.sh
 ```
