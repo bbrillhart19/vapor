@@ -1,5 +1,7 @@
 from loguru import logger
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from vapor.core.clients import Neo4jClient
 from vapor.core.models.embeddings import VaporEmbeddings
@@ -20,6 +22,13 @@ games = GamesTools(
     neo4j_client=neo4j_client,
     embedder=embedder,
 )
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    """Basic health check that the server is running."""
+    return JSONResponse({"status": "alive"}, status_code=200)
+
 
 if __name__ == "__main__":
     mcp.run()

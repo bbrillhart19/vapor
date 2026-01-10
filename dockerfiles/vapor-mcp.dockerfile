@@ -3,6 +3,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apt-get update -y && apt-get install curl -y
+
 # See .dockerignore for which files are excluded
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./vapor/__init__.py ./vapor/__init__.py
