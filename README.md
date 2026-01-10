@@ -38,23 +38,18 @@ A few environment variables need to be acquired and set for your personal use. F
 bash scripts/update-env.sh
 
 Created .env from .env.example
-⚠️  The following preserved keys were not set in your previous .env:
+[WARNING] The following preserved keys were not set in your previous .env:
    - STEAM_API_KEY
    - STEAM_ID
    - OLLAMA_API_KEY
    You must update them before proceeding further.
-✅ .env reset from .env.example with preserved values applied
+.env updated from .env.example with preserved values applied >>>
 ```
 Edit the `.env` file with the required values (see the warnings about "preserved keys") using the comments for each as a reference. You will need to acquire the following keys:
   - Steam Web API Key [here](https://steamcommunity.com/dev).
   - Create an account at [Ollama](https://docs.ollama.com/) and generate an API key [here](https://ollama.com/settings/keys).
 
 **NOTE:** When the `.env.example` adds/removes variables, you will need to reflect these changes in your own `.env`. You can do this by simply re-running the `update-env.sh` script, which will preserve any keys in the `.env.example` marked as `# preserved` (i.e. API keys) and add/remove anything else to stay in step with the current required environment.
-
-**NOTE:** You can set a custom path to environment if you wish with:
-```shell
-export VAPOR_ENV=path/to/your.env
-```
 
 ### Docker Installation
 This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS and take additional steps depending on if you have an NVIDIA GPU available.

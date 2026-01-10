@@ -74,11 +74,11 @@ rm -f "$TARGET.bak"
 
 # 4. Notify user
 if (( ${#missing_keys[@]} > 0 )); then
-  echo "⚠️  The following preserved keys were not set in your previous .env:"
+  echo "[WARNING] The following preserved keys were not set in your previous .env:"
   for key in "${missing_keys[@]}"; do
     echo "   - $key"
   done
   echo "   You must update them before proceeding further."
 fi
 
-echo "✅ $TARGET reset from $EXAMPLE with preserved values applied"
+echo "$TARGET updated from $EXAMPLE with preserved values applied >>>"
