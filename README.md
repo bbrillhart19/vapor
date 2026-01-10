@@ -33,37 +33,50 @@ pip install -e .[core]
 ```
 
 ### Setup Environment
-A few environment variables need to be acquired and set for your personal use. Copy the `.env.example` file like this so you can customize it for yourself:
+A few environment variables need to be acquired and set for your personal use. First, create your environment from the example using the convenience script:
 ```shell
-cp .env.example .env
+bash scripts/update-env.sh
+
+Created .env from .env.example
+⚠️  The following preserved keys were not set in your previous .env:
+   - STEAM_API_KEY
+   - STEAM_ID
+   - OLLAMA_API_KEY
+   You must update them before proceeding further.
+✅ .env reset from .env.example with preserved values applied
 ```
-And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire the following:
+Edit the `.env` file with the required values (see the warnings about "preserved keys") using the comments for each as a reference. You will need to acquire the following keys:
   - Steam Web API Key [here](https://steamcommunity.com/dev).
   - Create an account at [Ollama](https://docs.ollama.com/) and generate an API key [here](https://ollama.com/settings/keys).
+
+**NOTE:** When the `.env.example` adds/removes variables, you will need to reflect these changes in your own `.env`. You can do this by simply re-running the `update-env.sh` script, which will preserve any keys in the `.env.example` marked as `# preserved` (i.e. API keys) and add/remove anything else to stay in step with the current required environment.
 
 **NOTE:** You can set a custom path to environment if you wish with:
 ```shell
 export VAPOR_ENV=path/to/your.env
 ```
-**NOTE:** When the `.env.example` adds/removes variables, you will need to reflect these changes in your own `.env`.
 
 ### Docker Installation
-This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
+This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS and take additional steps depending on if you have an NVIDIA GPU available.
+
+**NOTE:** It is not advisable to attempt to setup Vapor on a device w/o an NVIDIA GPU. It is doable, however, be aware that processes requiring local model inference (ex: embeddings for vector search) will be quite slow. For [developers](#development), however, GPU resources are not necessary.
 
 #### WSL/Linux
 Install Docker via the CLI:
 ```shell
 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
-**For NVIDA GPU Support** you will also need to install NVIDIA Container Toolkit, see instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to reboot after installing!
+**NVIDA GPU Support:** You will also need to install NVIDIA Container Toolkit, see instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to reboot after installing!
 
 #### Windows
 Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
 
+**NVIDIA GPU Support:** This requires WSL. Follow the instructions [here](https://learn.microsoft.com/en-us/windows/wsl/install) to install it, then follow the rest of the [WSL/Linux](#wsllinux) instructions to get set up with Docker and continue using Vapor in your WSL CLI.
+
 #### MacOS
 Install [Docker Desktop for MacOS](https://docs.docker.com/desktop/setup/install/mac-install/)
 
-**NOTE:** It is currently not possible to passthrough an Apple GPU to Ollama's docker container. It is not advisable to attempt to setup Vapor on a Mac because of this (embeddings for Neo4j ingestion will be very slow), but it is doable. For [developers](#development), however, GPU resources are not required.
+**NOTE:** It is currently not possible to passthrough an Apple GPU to Ollama's docker container. 
 
 ### Start Services
 Make sure you have set the `RESOURCE_PROFILE` variable in your `.env` according to what your device has available, then startup the backend services (including Ollama, Neo4j, FastMCP):
