@@ -18,6 +18,7 @@ dev = [
   "pytest",
   "pytest-coverage",
   "pytest-mock",
+  "pytest-asyncio",
 ]
 core = [
   "python-steam-api",
@@ -60,6 +61,7 @@ markers = [
 ]
 minversion = "6.0"
 testpaths = "tests/"
+asyncio_mode = "auto"
 
 [tool.mypy]
 ignore_missing_imports = true
