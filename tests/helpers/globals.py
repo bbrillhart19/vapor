@@ -17,3 +17,4 @@ NEO4J_DATABASE = "neo4j"
 # Ollama Dev vars
 OLLAMA_API_KEY = "test"
 OLLAMA_LLM = "test"
+OLLAMA_EMBEDDING_MODEL = "test"

@@ -99,7 +99,7 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
 
 @pytest.fixture(scope="function")
 def mock_embedder(mocker):
-    model = "foo"
+    model = globals.OLLAMA_EMBEDDING_MODEL
     embedding_size = 10
     mocker.patch.dict(
         embeddings.EMBEDDING_PARAMS, {model: {"embedding_size": embedding_size}}
