@@ -6,19 +6,24 @@ import pandas as pd
 from neo4j import Driver
 from neo4j.exceptions import ServiceUnavailable
 
-from vapor.clients import Neo4jClient
-from vapor.models.embeddings import VaporEmbeddings
+from vapor.core.clients import Neo4jClient
+from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.utils import utils
 
 from helpers import globals
 
 
+@pytest.mark.parametrize("in_docker", [True, False])
 @pytest.mark.neo4j
-def test_neo4j_from_env(mocker):
-    """Tests setting up `SteamClient` from env vars"""
+def test_neo4j_from_env(mocker, in_docker: bool):
+    """Tests setting up `Neo4jClient` from env vars"""
+    # Mock this to get behavior of connecting from host or docker
+    mocker.patch.object(utils, "in_docker", return_value=in_docker)
     mocker.patch.dict(
         os.environ,
         {
-            "NEO4J_URI": globals.NEO4J_URI,
+            "NEO4J_DOCKER_HOST_NAME": globals.NEO4J_DOCKER_HOST_NAME,
+            "NEO4J_BOLT_PORT": globals.NEO4J_BOLT_PORT,
             "NEO4J_USER": globals.NEO4J_USER,
             "NEO4J_PW": globals.NEO4J_PW,
             "NEO4J_DATABASE": globals.NEO4J_DATABASE,
@@ -289,6 +294,38 @@ def test_add_game_descriptions(neo4j_client: Neo4jClient, steam_games: dict[int,
     for game in games:
         appid = game["appid"]
         result = neo4j_client._read(cypher, appid=appid)
+        assert not result.loc[
+            (result["appid"] == appid)
+            & (result["about_the_game"] == f"This is game={appid}")
+        ].empty
+
+
+@pytest.mark.neo4j
+def test_get_game_descriptions(neo4j_client: Neo4jClient, steam_games: dict[int, dict]):
+    """Tests retrieval of game descriptions from `Game` nodes"""
+    # Add some games
+    games = list(steam_games.values())[:2]
+    cypher = """
+        UNWIND $games as game
+        MERGE (g:Game {appId: game.appid, name: game.name})
+    """
+    neo4j_client._write(cypher, games=games)
+    # Create descriptions
+    mock_descs = [
+        {"appid": game["appid"], "about_the_game": f"This is game={game['appid']}"}
+        for game in games
+    ]
+    # Run cypher to unwind and set game descriptions
+    cypher = """
+        UNWIND $descriptions as description
+        MATCH (g:Game {appId: description.appid})
+        SET g.aboutTheGame = description.about_the_game
+    """
+    neo4j_client._write(cypher, descriptions=mock_descs)
+    # Retrieve game descriptions and validate
+    result = neo4j_client.get_game_descriptions(games=games)
+    for game in games:
+        appid = game["appid"]
         assert not result.loc[
             (result["appid"] == appid)
             & (result["about_the_game"] == f"This is game={appid}")

@@ -1,7 +1,10 @@
+import os
 import pytest
 
-from vapor.models import embeddings, llm, prompts
-from vapor.utils import utils
+from vapor.core.models import embeddings, llm, prompts
+from vapor.core.utils import utils
+
+from helpers import globals
 
 
 def test_embeddings():
@@ -14,8 +17,15 @@ def test_embeddings():
     )
 
 
-def test_llm():
+# TODO: Test pull() method
+
+
+def test_llm(mocker):
     """Tests creation of `VaporLLM` object"""
+    mocker.patch.dict(
+        os.environ,
+        {"OLLAMA_LLM": globals.OLLAMA_LLM, "OLLAMA_API_KEY": globals.OLLAMA_API_KEY},
+    )
     llm_model = llm.VaporLLM.from_env()
     assert llm_model.model == utils.get_env_var("OLLAMA_LLM")
 

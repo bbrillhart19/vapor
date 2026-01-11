@@ -1,8 +1,8 @@
 import pytest
 
-from vapor.models.embeddings import VaporEmbeddings
-from vapor.utils import model2neo4j
-from vapor.clients import Neo4jClient
+from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.utils import model2neo4j
+from vapor.core.clients import Neo4jClient
 
 
 def test_generate_chunks():
