@@ -3,7 +3,6 @@ from typing import Any
 
 from loguru import logger
 from langchain_ollama import OllamaEmbeddings
-from ollama import Client
 
 from vapor.core.utils import utils
 
@@ -47,7 +46,6 @@ class VaporEmbeddings(OllamaEmbeddings):
         return self._get_param("embedding_size")
 
     def pull(self) -> None:
-        assert isinstance(self._client, Client)
         # Get all available models with ollama client
         list_response = self._client.list()
         # Parse ListResponse for model names
