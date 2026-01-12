@@ -16,7 +16,7 @@ class GamesTools(object):
         mcp_instance.tool(self.about_the_game)
         mcp_instance.tool(self.find_similar_games)
 
-    def about_the_game(self, name: str) -> dict[str, str]:
+    async def about_the_game(self, name: str) -> dict[str, str]:
         """Retrieves the "about the game" description for the game
         in the database that best matches the provided `name` using
         a fuzzy match technique. The game descriptions have been populated
@@ -65,7 +65,7 @@ class GamesTools(object):
         response["about_the_game"] = description
         return response
 
-    def find_similar_games(self, summarized_description: str) -> list[dict]:
+    async def find_similar_games(self, summarized_description: str) -> list[dict]:
         """Finds games and excerpts of their "about the game" descriptions
         in the database which are semantically similar to the
         provided `summarized_description`. Provides the discovered games

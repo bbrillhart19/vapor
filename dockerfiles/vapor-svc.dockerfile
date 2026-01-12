@@ -11,7 +11,7 @@ COPY ./pyproject.toml ./pyproject.toml
 COPY ./vapor/__init__.py ./vapor/__init__.py
 COPY ./vapor/core ./vapor/core
 COPY ./vapor/svc/__init__.py ./vapor/svc/__init__.py
-COPY ./vapor/svc/mcp ./vapor/svc/mcp
+COPY ./vapor/svc/ ./vapor/svc
 
 # Install the package
 RUN pip install -e .[svc]

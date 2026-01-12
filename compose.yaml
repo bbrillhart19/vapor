@@ -47,23 +47,21 @@ x-neo4j: &neo4j
     start_period: 30s
     start_interval: 5s
 
-x-mcp: &mcp
-  image: vapor-mcp
-  container_name: ${MCP_DOCKER_HOST_NAME}
+x-svc: &svc
+  image: vapor-svc
+  container_name: ${SVC_DOCKER_HOST_NAME}
   build:
     context: .
-    dockerfile: ./dockerfiles/vapor-mcp.dockerfile
+    dockerfile: ./dockerfiles/vapor-svc.dockerfile
   volumes:
     - ./vapor:/app/vapor:ro
   env_file:
     - ./.env
-  environment:
-    - FASTMCP_HOST=0.0.0.0
-  command: fastmcp run vapor/svc/mcp/run.py:mcp --transport http --port 8000
+  command: fastapi run vapor/svc/app.py
   ports:
-    - ${MCP_PORT}:8000
+    - ${SVC_PORT}:8000
   healthcheck:
-    test: curl -f http://0.0.0.0:8000/health
+    test: curl -f http://127.0.0.1:8000/status/health
     interval: 1m
     timeout: 2s
     retries: 5
@@ -113,12 +111,14 @@ services:
     ports:
       - 7475:7474
       - 7688:7687
+    networks:
+      - dev
     profiles:
       - dev
 
   # FastMCP Server
-  mcp-cpu:
-    <<: *mcp
+  svc:
+    <<: *svc
     depends_on:
       neo4j: 
         condition: service_healthy
@@ -127,8 +127,8 @@ services:
     profiles:
       - cpu
 
-  mcp-nvidia:
-    <<: *mcp
+  svc-nvidia:
+    <<: *svc
     depends_on:
       neo4j: 
         condition: service_healthy
@@ -136,3 +136,6 @@ services:
         condition: service_healthy
     profiles:
       - nvidia-gpu
+
+networks:
+  dev:
