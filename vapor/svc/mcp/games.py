@@ -99,7 +99,7 @@ class GamesTools(object):
         )
         # Return nothing if empty
         if result.empty:
-            return ""
+            return []
         # Parse responses
         parsed_results = []
         for name, game_df in result.groupby(by="name"):
