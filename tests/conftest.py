@@ -2,6 +2,7 @@ import random
 from typing import Generator
 
 import pytest
+from fastmcp import FastMCP
 
 from vapor.core.models import embeddings
 from vapor.core.clients import Neo4jClient, SteamClient
@@ -115,3 +116,10 @@ def mock_embedder(mocker):
     )
 
     return embeddings.VaporEmbeddings(model=model)
+
+
+@pytest.fixture(scope="function")
+def mock_mcp(mocker) -> FastMCP:
+    mocker.patch.object(FastMCP, "__init__", return_value=None)
+    mocker.patch.object(FastMCP, "tool", return_value=None)
+    return FastMCP()
