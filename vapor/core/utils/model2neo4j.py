@@ -4,8 +4,8 @@ from rich.progress import track
 from loguru import logger
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vapor.models.embeddings import VaporEmbeddings
-from vapor.clients import Neo4jClient
+from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.clients import Neo4jClient
 
 
 def generate_game_description_chunks(

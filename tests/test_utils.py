@@ -1,9 +1,9 @@
 import os
+from pathlib import Path
 
 import pytest
 
-from vapor.utils import utils
-from helpers import globals
+from vapor.core.utils import utils
 
 
 def test_get_env_var(mocker):
@@ -43,3 +43,8 @@ def test_set_env():
     assert os.environ["TEST_VAR"] == "test"
     # Pop to reset
     os.environ.pop("TEST_VAR")
+
+
+def test_in_docker():
+    """Tests in_docker method with `/.dockerenv` existence check"""
+    assert utils.in_docker() == Path("/.dockerenv").exists()

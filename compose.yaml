@@ -1,22 +1,141 @@
 ### Compose structure to coordinate Vapor and its dependencies ###
+# Resources (shared configs)
+x-nvidia-gpu: &nvidia-gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+# TODO: AMD GPU support
+
+# Base services (shared configs)
+x-ollama: &ollama
+  image: ollama/ollama:latest
+  container_name: ${OLLAMA_DOCKER_HOST_NAME}
+  volumes:
+    - ${VAPOR_DATA_PATH}/ollama:/root/.ollama
+  environment:
+    - OLLAMA_KEEP_ALIVE=24h
+  ports:
+    - ${OLLAMA_PORT}:11434
+  healthcheck:
+    test: ollama list
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 10s
+    start_interval: 2s
+  restart: unless-stopped
+
+x-neo4j: &neo4j
+  image: neo4j:2025.05.0
+  environment:
+    - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
+    - NEO4J_apoc_export_file_enabled=true
+    - NEO4J_apoc_import_file_enabled=true
+    - NEO4J_apoc_import_file_use__neo4j__config=true
+    - NEO4J_PLUGINS=["apoc"]
+    - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
+  healthcheck:
+    test: wget http://localhost:7474/browser -O -
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 30s
+    start_interval: 5s
+
+x-app: &app
+  image: vapor-app
+  container_name: ${APP_DOCKER_HOST_NAME}
+  build:
+    context: .
+    dockerfile: ./dockerfiles/vapor-app.dockerfile
+  volumes:
+    - ./vapor/app:/app/vapor/app:ro
+  env_file:
+    - ./.env
+  command: fastapi run vapor/app/main.py
+  ports:
+    - ${APP_PORT}:8000
+  healthcheck:
+    test: curl -f http://127.0.0.1:8000/status/health
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 10s
+    start_interval: 2s
+  restart: unless-stopped
+
+# NOTE: All services should have a profile:
+# Resources - one of [cpu, nvidia-gpu]
+# Purpose - one of [default, dev]
 services:
+  # Ollama
+  ollama-cpu:
+    <<: *ollama
+    profiles:
+      - cpu
+
+  ollama-nvidia:
+    <<: 
+      - *ollama
+      - *nvidia-gpu
+    profiles:
+      - nvidia-gpu
+
+  # TODO: AMD GPU support
+
   # Neo4j GraphDB 
   neo4j:
-    image: neo4j:2025.05.0
+    <<: *neo4j
+    container_name: ${NEO4J_DOCKER_HOST_NAME}
     volumes:
       - ${VAPOR_DATA_PATH}/neo4j/logs:/logs
       - ${VAPOR_DATA_PATH}/neo4j/config:/config
       - ${VAPOR_DATA_PATH}/neo4j/data:/data
-      - ${VAPOR_DATA_PATH}/neo4j/plugin:/plugins
-    environment:
-      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PW}
-      - NEO4J_apoc_export_file_enabled=true
-      - NEO4J_apoc_import_file_enabled=true
-      - NEO4J_apoc_import_file_use__neo4j__config=true
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted="apoc.text.*"
+      - ${VAPOR_DATA_PATH}/neo4j/plugin:/plugins    
     ports:
-      - 7474:7474
-      - 7687:7687
-    restart: always
-    
+      - ${NEO4J_BROWSER_PORT}:7474
+      - ${NEO4J_BOLT_PORT}:7687
+    restart: unless-stopped
+    profiles:
+      - default
+
+  # Testing service only for neo4j (no volumes, different ports)
+  neo4j-dev:
+    <<: *neo4j
+    container_name: neo4j-dev 
+    ports:
+      - 7475:7474
+      - 7688:7687
+    networks:
+      - dev
+    profiles:
+      - dev
+
+  # FastMCP Server
+  app:
+    <<: *app
+    depends_on:
+      neo4j: 
+        condition: service_healthy
+      ollama-cpu:
+        condition: service_healthy
+    profiles:
+      - cpu
+
+  app-nvidia:
+    <<: *app
+    depends_on:
+      neo4j: 
+        condition: service_healthy
+      ollama-nvidia:
+        condition: service_healthy
+    profiles:
+      - nvidia-gpu
+
+networks:
+  dev:

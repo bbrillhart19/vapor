@@ -8,7 +8,7 @@ from neo4j import GraphDatabase, RoutingControl, ExperimentalWarning
 from neo4j.exceptions import ServiceUnavailable
 import pandas as pd
 
-from vapor.utils import utils
+from vapor.core.utils import utils
 
 # Ignore Neo4j warning about experimental params in verify_connectivity()
 warnings.filterwarnings("ignore", category=ExperimentalWarning)
@@ -32,6 +32,7 @@ class Neo4jClient(object):
         """Initialize the client to connect to the database
         at `uri` with the `auth` combo of `(username, password)`
         """
+        self.uri = uri
         self.driver = GraphDatabase.driver(uri=uri, auth=auth)
         self._database = database
         self._wait_for_connection(timeout, sleep_duration)
@@ -39,8 +40,14 @@ class Neo4jClient(object):
     @classmethod
     def from_env(cls) -> Neo4jClient:
         """Initialize a `Neo4jClient` from default environment variables"""
+        if utils.in_docker():
+            neo4j_hostname = utils.get_env_var("NEO4J_DOCKER_HOST_NAME", "vapor-neo4j")
+        else:
+            neo4j_hostname = "localhost"
+        neo4j_port = utils.get_env_var("NEO4J_BOLT_PORT", "7687")
+        neo4j_uri = f"neo4j://{neo4j_hostname}:{neo4j_port}"
         return cls(
-            uri=utils.get_env_var("NEO4J_URI"),
+            uri=neo4j_uri,
             auth=(
                 utils.get_env_var("NEO4J_USER"),
                 utils.get_env_var("NEO4J_PW"),
@@ -60,7 +67,7 @@ class Neo4jClient(object):
                 connected = True
             except ServiceUnavailable:
                 logger.warning(
-                    f"Connection attempt failed, time remaining={time_remaining}s"
+                    f"Connection attempt failed @ {self.uri}, time remaining={time_remaining}s"
                 )
                 sleep(sleep_duration)
                 time_remaining -= sleep_duration
@@ -283,7 +290,7 @@ class Neo4jClient(object):
         """
         logger.warning(
             "Removing all nodes, relationships, and constraints, etc."
-            + " from the graph! This action cannote be undone."
+            + " from the graph! This action cannot be undone."
         )
         self._detach_delete()
         self._remove_constraints()

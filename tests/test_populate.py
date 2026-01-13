@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-from vapor.clients import SteamClient, Neo4jClient
+from vapor.core.clients import SteamClient, Neo4jClient
 from vapor import populate
-from vapor.models.embeddings import VaporEmbeddings
+from vapor.core.models.embeddings import VaporEmbeddings
 from helpers import globals
 
 
@@ -17,7 +17,7 @@ def test_init_delete(mocker, neo4j_client: Neo4jClient):
         {
             "STEAM_API_KEY": globals.STEAM_API_KEY,
             "STEAM_ID": globals.STEAM_ID,
-            "NEO4J_URI": globals.NEO4J_URI,
+            "NEO4J_BOLT_PORT": globals.NEO4J_BOLT_PORT,
             "NEO4J_USER": globals.NEO4J_USER,
             "NEO4J_PW": globals.NEO4J_PW,
             "NEO4J_DATABASE": globals.NEO4J_DATABASE,
@@ -58,7 +58,7 @@ def test_populate(
         {
             "STEAM_API_KEY": globals.STEAM_API_KEY,
             "STEAM_ID": globals.STEAM_ID,
-            "NEO4J_URI": globals.NEO4J_URI,
+            "NEO4J_BOLT_PORT": globals.NEO4J_BOLT_PORT,
             "NEO4J_USER": globals.NEO4J_USER,
             "NEO4J_PW": globals.NEO4J_PW,
             "NEO4J_DATABASE": globals.NEO4J_DATABASE,
@@ -129,8 +129,9 @@ def test_populate(
         side_effect=mocked_game_description,
     )
 
-    # Mock the from_env() for embedding model
+    # Mock the embedding model (no pull, from env)
     mocker.patch.object(VaporEmbeddings, "from_env", return_value=mock_embedder)
+    mocker.patch.object(VaporEmbeddings, "pull")
 
     # Set small limit for brevity
     limit = 2

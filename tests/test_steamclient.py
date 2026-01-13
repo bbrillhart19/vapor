@@ -4,7 +4,7 @@ import pytest
 
 from steam_web_api import Users, Apps
 
-from vapor.clients import SteamClient
+from vapor.core.clients import SteamClient
 from helpers import globals
 
 

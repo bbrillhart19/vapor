@@ -1,50 +1,58 @@
+import asyncio
+
 from loguru import logger
-from langchain.messages import HumanMessage
+from rich.console import Console
+from rich.markdown import Markdown
+
+from langchain.messages import HumanMessage, AIMessage
 from langchain.agents import create_agent
 from langgraph.graph.state import CompiledStateGraph
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
-from vapor.clients import Neo4jClient
-from vapor.tools import GAME_TOOLS
-from vapor.models.llm import VaporLLM
-from vapor.models.embeddings import VaporEmbeddings
-from vapor.models.prompts import load_prompt
-from vapor import VaporContext
+from vapor.core.models.llm import VaporLLM
+from vapor.core.models.prompts import load_prompt
 
 
-def handle_chat(agent: CompiledStateGraph, context: VaporContext) -> None:
+async def handle_chat(agent: CompiledStateGraph) -> None:
     """Helper method to handle user chat questions"""
-    msg = input("\nAsk a question:\n>>> ")
+    console = Console()
+    msg = console.input("\nAsk a question:\n>>> ")
     human_msg = HumanMessage(msg)
 
-    for event in agent.stream(
+    async for event in agent.astream(
         {"messages": [human_msg]},
-        context=context,
         stream_mode="values",
     ):
-        event["messages"][-1].pretty_print()
+        message = event["messages"][-1]
+        if isinstance(message, AIMessage):
+            md = Markdown(message.content)
+            console.print(md)
 
 
 @logger.catch(reraise=True)
-def chat() -> None:
+async def chat() -> None:
     """Opens a chat loop with Vapor's AI model serviced by Ollama"""
-    logger.info("Initializing Neo4jClient...")
-    neo4j_client = Neo4jClient.from_env()
-
-    logger.info("Initializing embedding model...")
-    embedder = VaporEmbeddings.from_env()
-
-    logger.info("Setting up context...")
-    context = VaporContext(neo4j_client=neo4j_client, embedder=embedder)
-
     logger.info("Loading prompt...")
     prompt = load_prompt("chat")
 
     logger.info(f"Initializing LLM Agent...")
-    llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096)
+    llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096, validate_model_on_init=True)
+
+    logger.info("Connecting to MCP Server...")
+    client = MultiServerMCPClient(
+        {
+            "vapor-mcp": {
+                "transport": "http",
+                "url": "http://localhost:8000/mcp",
+            }
+        }
+    )
+
+    tools = await client.get_tools()
+
     agent: CompiledStateGraph = create_agent(
         model=llm,
-        tools=GAME_TOOLS,
-        context_schema=VaporContext,
+        tools=tools,
         system_prompt=prompt,
     )
 
@@ -52,11 +60,11 @@ def chat() -> None:
 
     while True:
         try:
-            handle_chat(agent, context)
+            await handle_chat(agent)
         except (KeyboardInterrupt, EOFError):
             print("\nGoodbye!")
             break
 
 
 if __name__ == "__main__":
-    chat()
+    asyncio.run(chat())

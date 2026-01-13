@@ -6,7 +6,7 @@ from loguru import logger
 from steam_web_api import Steam
 from html2text import HTML2Text
 
-from vapor.utils import utils
+from vapor.core.utils import utils
 
 
 class SteamClient(Steam):

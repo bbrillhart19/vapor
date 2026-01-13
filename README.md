@@ -6,6 +6,7 @@
     <a href="https://store.steampowered.com/"><img alt="Steam" src="https://img.shields.io/badge/Steam-%23000000.svg?logo=steam&logoColor=white"></a>
     <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
     <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
+    <a href="https://gofastmcp.com/getting-started/welcome"><img alt="FastMCP" src=https://img.shields.io/badge/MCP-FastMCP_2.x-blue></a>
 </p>
 <p align="center">
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
@@ -24,65 +25,65 @@ Before proceeding, clone the repository to your system.
 - Python
 - Pip
 - [Docker](#docker-installation)
-- [Ollama](#ollama)
 
 ### Installation
 Install the editable `vapor` package, preferably within a virtual environment, with:
 ```shell
-pip install .
+pip install -e .[core]
 ```
 
 ### Setup Environment
-A few environment variables need to be acquired and set for your personal use. Copy the `.env.example` file like this so you can customize it for yourself:
+A few environment variables need to be acquired and set for your personal use. First, create your environment from the example using the convenience script:
 ```shell
-cp .env.example .env
-```
-And edit the `.env` file with the required values using the comments for each as a reference. You will need to acquire a Steam Web API Key [here](https://steamcommunity.com/dev).
+bash scripts/update-env.sh
 
-**NOTE:** You can set a custom path to environment if you wish with:
-```shell
-export VAPOR_ENV=path/to/your.env
+Created .env from .env.example
+[WARNING] The following preserved keys were not set in your previous .env:
+   - STEAM_API_KEY
+   - STEAM_ID
+   - OLLAMA_API_KEY
+   You must update them before proceeding further.
+.env updated from .env.example with preserved values applied >>>
 ```
+Edit the `.env` file with the required values (see the warnings about "preserved keys") using the comments for each as a reference. You will need to acquire the following keys:
+  - Steam Web API Key [here](https://steamcommunity.com/dev).
+  - Create an account at [Ollama](https://docs.ollama.com/) and generate an API key [here](https://ollama.com/settings/keys).
+
+**NOTE:** When the `.env.example` adds/removes variables, you will need to reflect these changes in your own `.env`. You can do this by simply re-running the `update-env.sh` script, which will preserve any keys in the `.env.example` marked as `# preserved` (i.e. API keys) and add/remove anything else to stay in step with the current required environment.
 
 ### Docker Installation
-This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS:
+This application requires Docker to run, whether you are a user or developing the codebase. Install Docker depending on your OS and take additional steps depending on if you have an NVIDIA GPU available.
 
-#### Windows/Mac
-Install Docker Desktop [for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) or [for Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+**NOTE:** It is not advisable to attempt to setup Vapor on a device w/o an NVIDIA GPU. It is doable, however, be aware that processes requiring local model inference (ex: embeddings for vector search) will be quite slow. For [developers](#development), however, GPU resources are not necessary.
 
 #### WSL/Linux
 Install Docker via the CLI:
 ```shell
 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2
 ```
+**NVIDA GPU Support:** You will also need to install NVIDIA Container Toolkit, see instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to reboot after installing!
 
-### Ollama
-The project uses open-source models with [Ollama](https://docs.ollama.com/) and you will need to create an account (it's free) and then download `Ollama` depending on your OS by following the instructions [here](https://ollama.com/download/linux)
+#### Windows
+Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-#### Embeddings
-*TODO: Script this and make it configurable.* Pull `embeddinggemma` with:
+**NVIDIA GPU Support:** This requires WSL. Follow the instructions [here](https://learn.microsoft.com/en-us/windows/wsl/install) to install it, then follow the rest of the [WSL/Linux](#wsllinux) instructions to get set up with Docker and continue using Vapor in your WSL CLI.
+
+#### MacOS
+Install [Docker Desktop for MacOS](https://docs.docker.com/desktop/setup/install/mac-install/)
+
+**NOTE:** It is currently not possible to passthrough an Apple GPU to Ollama's docker container. 
+
+### Start Services
+Make sure you have set the `RESOURCE_PROFILE` variable in your `.env` according to what your device has available, then startup the backend services (including Ollama, Neo4j, FastMCP):
 ```shell
-ollama pull embeddinggemma
+bash scripts/start.sh
 ```
-
-#### Reasoning (Cloud)
-*TODO: Script this and make it configurable.* Using cloud models specifically is what requires the Ollama account. Doing so allows the common person to use much larger open-source models, though there are limits for the free tier. Sign-in, pull and run, for example, `deepseek` with:
+Remember to shut down (if necessary) with:
 ```shell
-ollama signin
-ollama pull deepseek-v3.1:671b-cloud
-ollama run deepseek-v3.1:671b-cloud
+bash scripts/stop.sh
 ```
-
-### Start Neo4j
-[Neo4j](https://neo4j.com/) is a GraphDB which is used by `vapor` to store your interactions with different games and users. Before doing anything else, spin up the `neo4j` server with:
-```shell
-docker compose up -d
-```
-Navigate to http://localhost:7474 in your browser and view the `neo4j` database. Use the `NEO4J_USER` and `NEO4J_PW` values to log in from your [environment](#setup-environment). If you know the [Cypher query language](https://neo4j.com/docs/cypher-manual/current/introduction/) this is where you can write queries to view parts of your "Vapor Graph" once it is [populated](#graph-population).
-
 
 ## Usage
-
 ### Neo4j Database Population
 First, you will need to populate the graph with data from Steam. This process will set you as the central node and populate in hops outwards from your friends (friends of friends, ..., etc.). See the usage here:
 ```shell
@@ -108,39 +109,31 @@ Then you can ask questions about the Steam data. Currently, this has very basic 
 ```bash
 Ask a question:
 >>> What are some world war 2 games?
-================================ Human Message =================================
+Here are some World War 2 games available:
 
-What are some world war 2 games?
-================================== Ai Message ==================================
-Tool Calls:
-  find_similar_games (d4d0d2b2-e2d2-4ee3-94bb-5b774a368483)
- Call ID: d4d0d2b2-e2d2-4ee3-94bb-5b774a368483
-  Args:
-    summarized_description: World War II game
-================================= Tool Message =================================
-Name: find_similar_games
-### ... tool result output ... ###
-================================== Ai Message ==================================
+ 1 Company of Heroes - Legacy Edition - A real-time strategy game that begins with the D-Day Invasion of Normandy and
+   follows Allied soldiers through pivotal WWII battles. Features cinematic single-player campaign, advanced squad AI,
+   and stunning visuals.
+ 2 Darkest Hour: Europe '44-'45 - A first-person shooter with a terrifying suppression system, over 100 iconic weapons,
+   and 90+ armored vehicles including late-war heavy tanks like the M18 Hellcat and King Tiger.
+ 3 Day of Defeat - An intense team-based FPS set in the WWII European Theatre of Operations. Players choose from
+   infantry classes with historical weaponry and complete mission-specific objectives based on key historical
+   operations.
+ 4 Mare Nostrum - Set in North Africa, this game features British, Australian, German, and Italian forces with authentic
+   weaponry and 10 fully realized vehicles across 8 different battle environments.
+ 5 Red Orchestra: Ostfront 41-45 - The only FPS focused on the WWII Russian Front, featuring realistic bullet
+   ballistics, 16 fully realized vehicles, 30 authentic infantry weapons, and support for 50+ player online multiplayer.
 
-Here are several World War II games you might enjoy, along with a quick snapshot of what each offers:
-
-| Game | Steam AppID | Highlight |
-|------|-------------|-----------|
-| **Call of Duty: World at War** | 10090 | A gritty first‑person shooter that takes you deep into both the European and Pacific fronts, featuring realistic combat, Kamikaze attacks, and a raw, unfiltered WWII experience. |
-| **Company of Heroes – Legacy Edition** | 4560 | A real‑time strategy title that places you in the boots of Allied soldiers during D‑Day and beyond, with advanced squad AI, dynamic environments, and a cinematic single‑player campaign. |
-| **Darkest Hour: Europe ’44‑’45** | 1280 | A multiplayer tactical shooter that lets you play as one of seven nations, featuring over 100 authentic battles from Normandy to Berlin, complete with sandbags, foxholes, and logistics. |
-| **Day of Defeat** | 30 | A classic Axis‑vs‑Allied team‑based FPS that focuses on squad tactics and historically accurate weaponry across key WWII map settings. |
-| **Mare Nostrum** | 1230 | Focuses on the North African campaign with realistic infantry and vehicle combat, offering a mix of urban street fighting and open‑desert tank battles. |
-| **Tom Clancy's Rainbow Six Siege X** | 359550 | While not strictly WWII, it’s a tactical shooter that can appeal to fans of tactical team play and historical themes. |
-
-These titles cover a range of genres—first‑person shooters, tactical shooters, and real‑time strategy—so you can pick the style that appeals most to you.
+These games cover various aspects of WWII combat including strategy, first-person shooting, and different theaters of
+war from Europe to North Africa.
 ```
 
 ## Development
 Refer to this section only if you are developing the codebase. 
 
 ### Development Checklist
-- [ ] Ensure [environment](#installation) is setup and activated
+- [ ] Ensure [environment](#setup-environment) is setup
+- [ ] Ensure [development package](#install-development-package) is installed
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
 - [ ] Bump the [version](setup.py) with standard semantic versioning rules
@@ -149,11 +142,10 @@ Refer to this section only if you are developing the codebase.
 - [ ] Merge the PR after review and required approvals
 - [ ] Create a [release](https://github.com/bbrillhart19/vapor/releases/) matching the updated version number
 
-### Installation
-#### Vapor Development Package
+### Install Development Package
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
-pip install -e .[dev]
+pip install -e .[dev,all]
 ```
 
 ### Code Formatting
@@ -161,9 +153,18 @@ This codebase is formatted using `black`. Prior to pushing any changes/commits, 
 ```shell
 black vapor tests
 ```
+Additionally, you can use `flake8` to lint:
+```shell
+# Check for Python syntax errors or undefined names
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+# Warn about unused imports, trailing whitespace, etc.
+flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+# Autoflake is helpful to remove unused imports automatically (comes installed with dev)
+autoflake --in-place --remove-all-unused-imports --ignore-init-module-imports --recursive .
+```
 
 ### Unit Tests
 A convenience script has been set up to launch the necessary [development containers](compose.dev.yaml) and subsequently run the tests and report coverage before spinning down the containers:
 ```shell
-bash scripts/dev/run-tests.sh
+bash scripts/run-tests.sh
 ```

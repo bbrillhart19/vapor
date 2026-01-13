@@ -1,7 +1,7 @@
 from rich.progress import track
 from loguru import logger
 
-from vapor import clients
+from vapor.core import clients
 
 
 def populate_friends(

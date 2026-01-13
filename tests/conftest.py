@@ -2,11 +2,10 @@ import random
 from typing import Generator
 
 import pytest
-from langchain.tools import ToolRuntime
+from fastmcp import FastMCP
 
-from vapor._types import VaporContext
-from vapor.models import embeddings
-from vapor.clients import Neo4jClient, SteamClient
+from vapor.core.models import embeddings
+from vapor.core.clients import Neo4jClient, SteamClient
 
 from helpers import globals
 
@@ -91,7 +90,7 @@ def steam_owned_games(
 @pytest.fixture(scope="function")
 def neo4j_client() -> Generator[Neo4jClient, None, None]:
     client = Neo4jClient(
-        uri=globals.NEO4J_URI,
+        uri=f"neo4j://localhost:{globals.NEO4J_BOLT_PORT}",
         auth=(globals.NEO4J_USER, globals.NEO4J_PW),
         database=globals.NEO4J_DATABASE,
     )
@@ -101,7 +100,7 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
 
 @pytest.fixture(scope="function")
 def mock_embedder(mocker):
-    model = "foo"
+    model = globals.OLLAMA_EMBEDDING_MODEL
     embedding_size = 10
     mocker.patch.dict(
         embeddings.EMBEDDING_PARAMS, {model: {"embedding_size": embedding_size}}
@@ -120,19 +119,7 @@ def mock_embedder(mocker):
 
 
 @pytest.fixture(scope="function")
-def vapor_ctx(
-    neo4j_client: Neo4jClient, mock_embedder: embeddings.VaporEmbeddings
-) -> VaporContext:
-    return VaporContext(neo4j_client=neo4j_client, embedder=mock_embedder)
-
-
-@pytest.fixture(scope="function")
-def tool_runtime(vapor_ctx: VaporContext) -> ToolRuntime[VaporContext]:
-    return ToolRuntime(
-        context=vapor_ctx,
-        config={},
-        stream_writer=lambda x: None,
-        state={"messages": []},
-        store=None,
-        tool_call_id="test_call_id",
-    )
+def mock_mcp(mocker) -> FastMCP:
+    mocker.patch.object(FastMCP, "__init__", return_value=None)
+    mocker.patch.object(FastMCP, "tool", return_value=None)
+    return FastMCP()

@@ -1,9 +1,7 @@
-import os
-
 import pytest
 
-from vapor.clients import SteamClient, Neo4jClient
-from vapor.utils import steam2neo4j
+from vapor.core.clients import SteamClient, Neo4jClient
+from vapor.core.utils import steam2neo4j
 from helpers import globals
 
 
