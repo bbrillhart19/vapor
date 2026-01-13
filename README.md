@@ -132,7 +132,8 @@ war from Europe to North Africa.
 Refer to this section only if you are developing the codebase. 
 
 ### Development Checklist
-- [ ] Ensure [environment](#installation) is setup and activated
+- [ ] Ensure [environment](#setup-environment) is setup
+- [ ] Ensure [development package](#install-development-package) is installed
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
 - [ ] Bump the [version](setup.py) with standard semantic versioning rules
@@ -141,8 +142,7 @@ Refer to this section only if you are developing the codebase.
 - [ ] Merge the PR after review and required approvals
 - [ ] Create a [release](https://github.com/bbrillhart19/vapor/releases/) matching the updated version number
 
-### Installation
-#### Vapor Development Package
+### Install Development Package
 Install the editable `dev` flavor of the `vapor` package, preferably within a virtual environment, with:
 ```shell
 pip install -e .[dev,all]
@@ -152,6 +152,15 @@ pip install -e .[dev,all]
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
 ```shell
 black vapor tests
+```
+Additionally, you can use `flake8` to lint:
+```shell
+# Check for Python syntax errors or undefined names
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+# Warn about unused imports, trailing whitespace, etc.
+flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+# Autoflake is helpful to remove unused imports automatically (comes installed with dev)
+autoflake --in-place --remove-all-unused-imports --recursive .
 ```
 
 ### Unit Tests
