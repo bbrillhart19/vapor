@@ -4,14 +4,15 @@ from fastapi import FastAPI
 
 from vapor.core.clients import Neo4jClient
 from vapor.core.models.embeddings import VaporEmbeddings
-from vapor.svc import mcp, routes
+from vapor.app import mcp, routes
 
 
 def create_app() -> FastAPI:
+    """Creates the Vapor `FastAPI` application with mounted `FastMCP` server"""
     logger.info("Initializing Vapor services >>>")
 
     ### Setup dependencies ###
-    logger.info("Setting up Neo4JClient...")
+    logger.info("Setting up Neo4jClient...")
     neo4j_client = Neo4jClient.from_env()
     logger.info("Setting up Embedding Model...")
     embedder = VaporEmbeddings.from_env()
@@ -25,17 +26,14 @@ def create_app() -> FastAPI:
         neo4j_client=neo4j_client,
         embedder=embedder,
     )
-    mcp_app = _mcp.http_app(path="/mcp")
+    mcp_app = _mcp.http_app(path="/")
 
     ### Create API ###
     logger.info("Creating app...")
-    # Create instance and add mcp lifespan -> mount
+    # Create instance and mount mcp
     app = FastAPI(title="Vapor API", lifespan=mcp_app.lifespan)
-    app.mount("/", mcp_app)
+    app.mount("/mcp", mcp_app)
     # Add routers
     app.include_router(routes.status_router)
 
     return app
-
-
-app = create_app()  # pragma: nocover

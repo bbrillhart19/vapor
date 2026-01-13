@@ -47,19 +47,19 @@ x-neo4j: &neo4j
     start_period: 30s
     start_interval: 5s
 
-x-svc: &svc
-  image: vapor-svc
-  container_name: ${SVC_DOCKER_HOST_NAME}
+x-app: &app
+  image: vapor-app
+  container_name: ${APP_DOCKER_HOST_NAME}
   build:
     context: .
-    dockerfile: ./dockerfiles/vapor-svc.dockerfile
+    dockerfile: ./dockerfiles/vapor-app.dockerfile
   volumes:
-    - ./vapor:/app/vapor:ro
+    - ./vapor/app:/app/vapor/app:ro
   env_file:
     - ./.env
-  command: fastapi run vapor/svc/app.py
+  command: fastapi run vapor/app/main.py
   ports:
-    - ${SVC_PORT}:8000
+    - ${APP_PORT}:8000
   healthcheck:
     test: curl -f http://127.0.0.1:8000/status/health
     interval: 1m
@@ -117,8 +117,8 @@ services:
       - dev
 
   # FastMCP Server
-  svc:
-    <<: *svc
+  app:
+    <<: *app
     depends_on:
       neo4j: 
         condition: service_healthy
@@ -127,8 +127,8 @@ services:
     profiles:
       - cpu
 
-  svc-nvidia:
-    <<: *svc
+  app-nvidia:
+    <<: *app
     depends_on:
       neo4j: 
         condition: service_healthy

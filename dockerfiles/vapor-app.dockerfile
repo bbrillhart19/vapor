@@ -6,12 +6,11 @@ WORKDIR /app
 # Install curl for healthcheck
 RUN apt-get update -y && apt-get install curl -y
 
-# See .dockerignore for which files are excluded
+# Copy relevant files for application layer
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./vapor/__init__.py ./vapor/__init__.py
 COPY ./vapor/core ./vapor/core
-COPY ./vapor/svc/__init__.py ./vapor/svc/__init__.py
-COPY ./vapor/svc/ ./vapor/svc
+COPY ./vapor/app ./vapor/app
 
 # Install the package
-RUN pip install -e .[svc]
+RUN pip install -e .[app]

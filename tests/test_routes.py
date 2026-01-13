@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 
-from vapor.svc import routes
+from vapor.app import routes
 
 
 ### Status routes ###

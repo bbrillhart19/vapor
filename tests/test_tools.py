@@ -7,7 +7,7 @@ from fastmcp import FastMCP
 
 from vapor.core.clients import Neo4jClient
 from vapor.core.models.embeddings import VaporEmbeddings
-from vapor.svc import mcp
+from vapor.app import mcp
 
 
 @pytest.mark.neo4j

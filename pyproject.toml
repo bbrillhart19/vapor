@@ -33,13 +33,13 @@ core = [
   "langchain-text-splitters",
   "langchain-mcp-adapters",
 ]
-svc = [
+app = [
   "vapor[core]",
   "fastapi[standard]",
   "fastmcp",
 ]
 all = [
-  "vapor[core,svc]"
+  "vapor[core,app]"
 ]
 
 [tool.pytest.ini_options]
