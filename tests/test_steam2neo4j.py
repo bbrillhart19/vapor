@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from vapor.core.clients import SteamClient, Neo4jClient

@@ -160,7 +160,7 @@ flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 # Warn about unused imports, trailing whitespace, etc.
 flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 # Autoflake is helpful to remove unused imports automatically (comes installed with dev)
-autoflake --in-place --remove-all-unused-imports --recursive .
+autoflake --in-place --remove-all-unused-imports --ignore-init-module-imports --recursive .
 ```
 
 ### Unit Tests
