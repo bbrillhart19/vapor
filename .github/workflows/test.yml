@@ -44,7 +44,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          bash scripts/dev/run-tests.sh "--cov-report=xml:coverage.xml --junitxml=pytest.xml"
+          bash scripts/run-tests.sh "--cov-report=xml:coverage.xml --junitxml=pytest.xml"
       - name: Pytest coverage comment
         id: coverage
         uses: MishaKav/pytest-coverage-comment@main
