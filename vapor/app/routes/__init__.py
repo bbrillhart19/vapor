@@ -1,1 +1,2 @@
 from .status import router as status_router
+from .games import router as games_router

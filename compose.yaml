@@ -116,7 +116,7 @@ services:
     profiles:
       - dev
 
-  # FastMCP Server
+  # API layer
   app:
     <<: *app
     depends_on:
