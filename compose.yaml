@@ -47,26 +47,22 @@ x-neo4j: &neo4j
     start_period: 30s
     start_interval: 5s
 
-x-app: &app
-  image: vapor-app
-  container_name: ${APP_DOCKER_HOST_NAME}
+x-mcp: &mcp
+  image: vapor-mcp
+  container_name: ${MCP_DOCKER_HOST_NAME}
   build:
     context: .
-    dockerfile: ./dockerfiles/vapor-app.dockerfile
+    dockerfile: ./dockerfiles/vapor-mcp.dockerfile
   volumes:
-    - ./vapor/app:/app/vapor/app:ro
+    - ./vapor/mcp:/app/vapor/mcp:ro
+    - ./vapor/core:/app/vapor/core:ro
   env_file:
     - ./.env
-  command: fastapi run vapor/app/main.py
+  environment:
+    - FASTMCP_HOST=0.0.0.0
+  command: fastmcp run vapor/mcp/main.py --transport http
   ports:
-    - ${APP_PORT}:8000
-  healthcheck:
-    test: curl -f http://127.0.0.1:8000/status/health
-    interval: 1m
-    timeout: 2s
-    retries: 5
-    start_period: 10s
-    start_interval: 2s
+    - ${MCP_PORT}:8000
   restart: unless-stopped
 
 # NOTE: All services should have a profile:
@@ -118,7 +114,31 @@ services:
 
   # API layer
   app:
-    <<: *app
+    image: vapor-app
+    container_name: ${APP_DOCKER_HOST_NAME}
+    build:
+      context: .
+      dockerfile: ./dockerfiles/vapor-app.dockerfile
+    volumes:
+      - ./vapor/app:/app/vapor/app:ro
+    env_file:
+      - ./.env
+    command: fastapi run vapor/app/main.py
+    ports:
+      - ${APP_PORT}:8000
+    healthcheck:
+      test: curl -f http://127.0.0.1:8000/status/health
+      interval: 1m
+      timeout: 2s
+      retries: 5
+      start_period: 10s
+      start_interval: 2s
+    restart: unless-stopped
+    profiles:
+      - default
+
+  mcp-cpu:
+    <<: *mcp
     depends_on:
       neo4j: 
         condition: service_healthy
@@ -127,8 +147,8 @@ services:
     profiles:
       - cpu
 
-  app-nvidia:
-    <<: *app
+  mcp-nvidia:
+    <<: *mcp
     depends_on:
       neo4j: 
         condition: service_healthy

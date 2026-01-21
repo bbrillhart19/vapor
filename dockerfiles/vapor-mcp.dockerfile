@@ -1,4 +1,4 @@
-### Dockerfile to support Vapor REST API (+ core) ###
+### Dockerfile to support Vapor MCP (+ core) ###
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -10,7 +10,7 @@ RUN apt-get update -y && apt-get install curl -y
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./vapor/__init__.py ./vapor/__init__.py
 COPY ./vapor/core ./vapor/core
-COPY ./vapor/app ./vapor/app
+COPY ./vapor/mcp_server ./vapor/mcp_server
 
 # Install the package
-RUN pip install -e .[app]
+RUN pip install -e .[mcp]

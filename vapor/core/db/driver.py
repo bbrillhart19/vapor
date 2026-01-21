@@ -2,10 +2,16 @@ from neo4j import Driver, GraphDatabase
 
 from vapor.core.utils import utils
 
+# Module-level driver instance (set by factory lifespan)
 _driver: Driver | None = None
 
 
 def create_driver() -> Driver:
+    """Create a Neo4j driver instance from environment configuration.
+
+    Returns:
+        Driver: Configured Neo4j driver instance.
+    """
     if utils.in_docker():
         neo4j_hostname = utils.get_env_var("NEO4J_DOCKER_HOST_NAME", "vapor-neo4j")
     else:
@@ -23,6 +29,14 @@ def create_driver() -> Driver:
 
 
 def get_driver() -> Driver:
+    """Get the Neo4j driver instance.
+
+    Returns:
+        Driver: The Neo4j driver instance.
+
+    Raises:
+        RuntimeError: If driver has not been initialized.
+    """
     if _driver is None:
         raise RuntimeError("Neo4j driver not initialized")
     return _driver

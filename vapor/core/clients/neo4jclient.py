@@ -103,9 +103,7 @@ class Neo4jClient(object):
     ) -> None:
         cypher = """
             CREATE CONSTRAINT {0} IF NOT EXISTS FOR (n:{1}) REQUIRE (n.{2}) IS UNIQUE
-        """.format(
-            constraint_name, node_label, node_property
-        )
+        """.format(constraint_name, node_label, node_property)
         self._write(cypher)
 
     def _set_user_constraint(self) -> None:
@@ -152,9 +150,7 @@ class Neo4jClient(object):
         cypher = """
             CREATE VECTOR INDEX {0}
                 IF NOT EXISTS FOR (n:{1}) ON (n.{2})
-        """.format(
-            index_name, node, embedding_key
-        )
+        """.format(index_name, node, embedding_key)
         # NOTE: Splitting like this to avoid problems with f-strings and curly braces
         cypher += """
             OPTIONS {indexConfig: {
@@ -171,9 +167,7 @@ class Neo4jClient(object):
         # Wait for index to come online
         await_cypher = """
             CALL db.awaitIndex("{0}", {1})
-        """.format(
-            index_name, timeout
-        )
+        """.format(index_name, timeout)
         self._read(await_cypher)
 
     def _get_vector_indexes(self) -> pd.DataFrame:

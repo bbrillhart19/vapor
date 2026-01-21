@@ -37,10 +37,13 @@ core = [
 app = [
   "vapor[core]",
   "fastapi[standard]",
+]
+mcp = [
+  "vapor[core]",
   "fastmcp",
 ]
 all = [
-  "vapor[core,app]"
+  "vapor[core,app,mcp]"
 ]
 
 [tool.pytest.ini_options]

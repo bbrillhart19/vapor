@@ -11,6 +11,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from vapor.core.models.llm import VaporLLM
 from vapor.core.models.prompts import load_prompt
+from vapor.core.utils import utils
 
 
 async def handle_chat(agent: CompiledStateGraph) -> None:
@@ -39,11 +40,13 @@ async def chat() -> None:
     llm = VaporLLM.from_env(temperature=0.7, num_ctx=4096, validate_model_on_init=True)
 
     logger.info("Connecting to MCP Server...")
+    mcp_port = utils.get_env_var("MCP_PORT")
+    mcp_url = f"http://localhost:{mcp_port}/mcp"
     client = MultiServerMCPClient(
         {
             "vapor-mcp": {
                 "transport": "http",
-                "url": "http://localhost:8000/mcp",
+                "url": mcp_url,
             }
         }
     )

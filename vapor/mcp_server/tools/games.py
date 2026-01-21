@@ -1,22 +1,22 @@
 from fastmcp import FastMCP
+from fastmcp.dependencies import Depends
 
-from vapor.core.clients import Neo4jClient
-from vapor.core.models.embeddings import VaporEmbeddings
+from vapor.core.services import GamesService
+from vapor.core.services.deps import get_games_service
+from vapor.core.models.embeddings import VaporEmbeddings, get_embedder
 
 
 class GamesTools(object):
     def __init__(
         self,
         mcp_instance: FastMCP,
-        neo4j_client: Neo4jClient,
-        embedder: VaporEmbeddings,
     ):
-        self.neo4j_client = neo4j_client
-        self.embedder = embedder
         mcp_instance.tool(self.about_the_game)
         mcp_instance.tool(self.find_similar_games)
 
-    async def about_the_game(self, name: str) -> dict[str, str]:
+    async def about_the_game(
+        self, name: str, svc: GamesService = Depends(get_games_service)
+    ) -> dict[str, str]:
         """Retrieves the "about the game" description for the game
         in the database that best matches the provided `name` using
         a fuzzy match technique. The game descriptions have been populated
@@ -37,35 +37,14 @@ class GamesTools(object):
                 for the best matched game, or will not be present
                 if no pre-populated description is available.
         """
-        # Set up response
-        response: dict[str, str] = {}
-        # Get the matches from neo4j
-        matches = self.neo4j_client.search_game_by_name(name)
-        # Return empty response if nothing matched the query
-        if matches.empty:
-            return response
+        return svc.about_the_game(name)
 
-        # Matches were found, take the best (first row)
-        best_match = matches.iloc[0]
-        response["matched_game"] = best_match["name"]
-
-        # Get the about the game description
-        cypher = """
-            MATCH (g:Game {appId: $appid})
-            RETURN g.aboutTheGame as about_the_game
-        """
-        description = self.neo4j_client._read(cypher, appid=best_match["appid"]).iloc[
-            0
-        ]["about_the_game"]
-        # Return response with no description if not available
-        if not description:
-            return response
-
-        # Add retrieved description and return
-        response["about_the_game"] = description
-        return response
-
-    async def find_similar_games(self, summarized_description: str) -> list[dict]:
+    async def find_similar_games(
+        self,
+        summarized_description: str,
+        svc: GamesService = Depends(get_games_service),
+        embedder: VaporEmbeddings = Depends(get_embedder),
+    ) -> list[dict]:
         """Finds games and excerpts of their "about the game" descriptions
         in the database which are semantically similar to the
         provided `summarized_description`. Provides the discovered games
@@ -90,25 +69,10 @@ class GamesTools(object):
                 will be an empty list.
         """
         # Create an embedding of the summarized description
-        embedding = self.embedder.embed_query(summarized_description)
-        # Run semantic search over game descriptions
-        result = self.neo4j_client.game_descriptions_semantic_search(
+        embedding = embedder.embed_query(summarized_description)
+        # Use service to perform semantic search
+        return svc.find_similar_games(
             embedding=embedding,
             n_neighbors=10,
             min_score=0.5,
         )
-        # Return nothing if empty
-        if result.empty:
-            return []
-        # Parse responses
-        parsed_results = []
-        for name, game_df in result.groupby(by="name"):
-            appid = game_df.iloc[0]["appid"]
-            parsed_result = {
-                "name": name,
-                "appid": int(appid),
-                "description_chunks": game_df["desc"].values.tolist(),
-            }
-            parsed_results.append(parsed_result)
-
-        return parsed_results

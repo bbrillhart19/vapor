@@ -9,7 +9,6 @@ from vapor.core.clients import Neo4jClient, SteamClient
 
 from helpers import globals
 
-
 random.seed(globals.SEED)
 
 
