@@ -81,3 +81,29 @@ def test_load_prompt():
     prompt_name = "chat"
     prompt = prompts.load_prompt(prompt_name)
     assert prompt
+
+
+def test_get_embedder_not_initialized():
+    """Tests get_embedder raises error when embedder not initialized."""
+    # Save original value
+    original_embedder = embeddings._embedder
+    try:
+        embeddings._embedder = None
+        with pytest.raises(RuntimeError, match="Embedding model is not initialized"):
+            embeddings.get_embedder()
+    finally:
+        # Restore original
+        embeddings._embedder = original_embedder
+
+
+def test_get_embedder_initialized(mock_embedder: embeddings.VaporEmbeddings):
+    """Tests get_embedder returns embedder when initialized."""
+    # Save original value
+    original_embedder = embeddings._embedder
+    try:
+        embeddings._embedder = mock_embedder
+        result = embeddings.get_embedder()
+        assert result is mock_embedder
+    finally:
+        # Restore original
+        embeddings._embedder = original_embedder

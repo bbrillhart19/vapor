@@ -14,6 +14,8 @@ EMBEDDING_PARAMS = {
     }
 }
 
+_embedder: VaporEmbeddings | None = None
+
 
 class VaporEmbeddings(OllamaEmbeddings):
     """Vapor model integration with `OllamaEmbeddings`
@@ -67,3 +69,9 @@ class VaporEmbeddings(OllamaEmbeddings):
                     f"Unable to pull {self.model}, aborting!"
                     + f"\nPull Response: {pull_response}"
                 )
+
+
+def get_embedder() -> VaporEmbeddings:
+    if not _embedder:
+        raise RuntimeError("Embedding model is not initialized.")
+    return _embedder

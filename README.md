@@ -6,6 +6,7 @@
     <a href="https://store.steampowered.com/"><img alt="Steam" src="https://img.shields.io/badge/Steam-%23000000.svg?logo=steam&logoColor=white"></a>
     <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
     <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
+    <a href="https://fastapi.tiangolo.com/"><img alt="FastAPI" src=https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white></a>
     <a href="https://gofastmcp.com/getting-started/welcome"><img alt="FastMCP" src=https://img.shields.io/badge/MCP-FastMCP_2.x-blue></a>
 </p>
 <p align="center">
@@ -108,24 +109,27 @@ python vapor/chat.py
 Then you can ask questions about the Steam data. Currently, this has very basic tooling support centered around information about the games in the database, for example:
 ```bash
 Ask a question:
->>> What are some world war 2 games?
-Here are some World War 2 games available:
+>>> Find games similar to a story-driven RPG with choices that matter
+Based on your search for story-driven RPGs with choices that matter, here are the top recommendations:
 
- 1 Company of Heroes - Legacy Edition - A real-time strategy game that begins with the D-Day Invasion of Normandy and
-   follows Allied soldiers through pivotal WWII battles. Features cinematic single-player campaign, advanced squad AI,
-   and stunning visuals.
- 2 Darkest Hour: Europe '44-'45 - A first-person shooter with a terrifying suppression system, over 100 iconic weapons,
-   and 90+ armored vehicles including late-war heavy tanks like the M18 Hellcat and King Tiger.
- 3 Day of Defeat - An intense team-based FPS set in the WWII European Theatre of Operations. Players choose from
-   infantry classes with historical weaponry and complete mission-specific objectives based on key historical
-   operations.
- 4 Mare Nostrum - Set in North Africa, this game features British, Australian, German, and Italian forces with authentic
-   weaponry and 10 fully realized vehicles across 8 different battle environments.
- 5 Red Orchestra: Ostfront 41-45 - The only FPS focused on the WWII Russian Front, featuring realistic bullet
-   ballistics, 16 fully realized vehicles, 30 authentic infantry weapons, and support for 50+ player online multiplayer.
+Best Matches:
 
-These games cover various aspects of WWII combat including strategy, first-person shooting, and different theaters of
-war from Europe to North Africa.
+ 1 Arx Fatalis - Perfectly matches your criteria with "every choice you make in the game could have drastic impacts on
+   the world" and multiple endings based on your decisions.
+ 2 The Witcher: Enhanced Edition - A dark fantasy RPG where you "make difficult decisions and live with the
+   consequences" in a morally ambiguous world.
+ 3 Deus Ex series (Game of the Year Edition & Invisible War) - Both feature multiple solutions to problems, character
+   development choices, and dynamic, non-linear stories with responsive plot branches.
+
+Other Good Options:
+
+ 4 Neverwinter Nights 2: Platinum - Your actions, interactions, and companions all change the course of your adventure.
+ 5 Mass Effect (2007) - While the description is more general, it's known for its choice-driven narrative in an
+   immersive storyline.
+
+Arx Fatalis stands out as the strongest recommendation since its description specifically emphasizes that choices have
+drastic impacts on the world and lead to different endings, which directly aligns with your request for "choices that
+matter."
 ```
 
 ## Development
@@ -136,7 +140,7 @@ Refer to this section only if you are developing the codebase.
 - [ ] Ensure [development package](#install-development-package) is installed
 - [ ] Make code changes with proper [formatting](#code-formatting)
 - [ ] Locally, ensure passing [unit tests](#unit-tests)
-- [ ] Bump the [version](setup.py) with standard semantic versioning rules
+- [ ] Bump the [version](pyproject.toml) with standard semantic versioning rules
 - [ ] Create a [PR](#https://github.com/bbrillhart19/vapor/pulls) as a draft
 - [ ] Trigger [CI/CD tests workflow](.github/workflows/test.yml) by marking the PR "Ready for review"
 - [ ] Merge the PR after review and required approvals
