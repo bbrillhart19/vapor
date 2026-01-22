@@ -3,6 +3,7 @@ from typing import Generator
 
 import pytest
 from fastmcp import FastMCP
+from neo4j import Driver, GraphDatabase
 
 from vapor.core.models import embeddings
 from vapor.core.clients import Neo4jClient, SteamClient
@@ -10,6 +11,11 @@ from vapor.core.clients import Neo4jClient, SteamClient
 from helpers import globals
 
 random.seed(globals.SEED)
+
+
+# ============================================================================
+# Steam fixtures
+# ============================================================================
 
 
 @pytest.fixture(scope="function")
@@ -86,8 +92,46 @@ def steam_owned_games(
     return owned_games
 
 
+# ============================================================================
+# Neo4j fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="function")
+def neo4j_driver() -> Generator[Driver, None, None]:
+    """Provides a Neo4j driver instance for tests requiring database access.
+
+    This fixture connects to the dev Neo4j instance and ensures the database
+    is completely cleared after each test to prevent test artifacts from
+    affecting subsequent tests.
+
+    Yields:
+        Driver: A Neo4j driver instance connected to the dev database.
+    """
+    driver = GraphDatabase.driver(
+        uri=f"neo4j://localhost:{globals.NEO4J_BOLT_PORT}",
+        auth=(globals.NEO4J_USER, globals.NEO4J_PW),
+        database=globals.NEO4J_DATABASE,
+    )
+    yield driver
+    # Clear the database after each test
+    with driver.session() as session:
+        session.run("MATCH (n) DETACH DELETE n")
+        # Also drop any indexes/constraints that may have been created
+        session.run("CALL apoc.schema.assert({}, {})")
+    driver.close()
+
+
 @pytest.fixture(scope="function")
 def neo4j_client() -> Generator[Neo4jClient, None, None]:
+    """Provides a Neo4jClient instance for tests requiring the legacy client.
+
+    This fixture is maintained for backward compatibility with existing tests
+    that use the Neo4jClient directly.
+
+    Yields:
+        Neo4jClient: A client instance connected to the dev database.
+    """
     client = Neo4jClient(
         uri=f"neo4j://localhost:{globals.NEO4J_BOLT_PORT}",
         auth=(globals.NEO4J_USER, globals.NEO4J_PW),
@@ -97,8 +141,21 @@ def neo4j_client() -> Generator[Neo4jClient, None, None]:
     client.clear()
 
 
+# ============================================================================
+# Mock fixtures
+# ============================================================================
+
+
 @pytest.fixture(scope="function")
 def mock_embedder(mocker):
+    """Provides a mocked VaporEmbeddings instance.
+
+    The embedder is mocked to return fixed-size vectors without
+    actually calling the embedding model.
+
+    Returns:
+        VaporEmbeddings: A mocked embedder instance.
+    """
     model = globals.OLLAMA_EMBEDDING_MODEL
     embedding_size = 10
     mocker.patch.dict(
@@ -108,10 +165,18 @@ def mock_embedder(mocker):
     def mock_embed_docs(texts: list[str], *args, **kwargs) -> list[list[float]]:
         return [[0.5] * embedding_size] * len(texts)
 
+    def mock_embed_query(text: str, *args, **kwargs) -> list[float]:
+        return [0.5] * embedding_size
+
     mocker.patch.object(
         embeddings.VaporEmbeddings,
         "embed_documents",
         side_effect=mock_embed_docs,
+    )
+    mocker.patch.object(
+        embeddings.VaporEmbeddings,
+        "embed_query",
+        side_effect=mock_embed_query,
     )
 
     return embeddings.VaporEmbeddings(model=model)
@@ -119,6 +184,11 @@ def mock_embedder(mocker):
 
 @pytest.fixture(scope="function")
 def mock_mcp(mocker) -> FastMCP:
+    """Provides a mocked FastMCP instance.
+
+    Returns:
+        FastMCP: A mocked MCP instance for testing tools.
+    """
     mocker.patch.object(FastMCP, "__init__", return_value=None)
     mocker.patch.object(FastMCP, "tool", return_value=None)
     return FastMCP()
