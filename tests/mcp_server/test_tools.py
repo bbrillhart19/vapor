@@ -1,4 +1,3 @@
-import pytest
 from fastmcp import FastMCP
 
 from vapor.core.dao import GamesDAO
