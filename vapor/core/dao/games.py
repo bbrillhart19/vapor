@@ -1,3 +1,6 @@
+from neo4j import Transaction
+import pandas as pd
+
 from .base import BaseDAO
 
 
@@ -15,7 +18,7 @@ class GamesDAO(BaseDAO):
                 if a match is found, otherwise None.
         """
 
-        def _search(tx):
+        def _search(tx: Transaction) -> pd.DataFrame:
             cypher = """
                 WITH apoc.text.clean($name) as clean_name
                 MATCH (g:Game)
@@ -56,7 +59,7 @@ class GamesDAO(BaseDAO):
         response["matched_game"] = best_match["name"]
 
         # Get the game description
-        def _get_description(tx):
+        def _get_description(tx: Transaction) -> pd.DataFrame:
             cypher = """
                 MATCH (g:Game {appId: $appid})
                 RETURN g.aboutTheGame as about_the_game
@@ -100,7 +103,7 @@ class GamesDAO(BaseDAO):
                 Returns empty list if no similar games found.
         """
 
-        def _semantic_search(tx):
+        def _semantic_search(tx: Transaction) -> pd.DataFrame:
             cypher = """
                 CALL db.index.vector.queryNodes(
                     "game_description_index",
