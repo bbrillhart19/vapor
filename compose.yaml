@@ -54,13 +54,13 @@ x-mcp: &mcp
     context: .
     dockerfile: ./dockerfiles/vapor-mcp.dockerfile
   volumes:
-    - ./vapor/mcp:/app/vapor/mcp:ro
+    - ./vapor/mcp_server:/app/vapor/mcp_server:ro
     - ./vapor/core:/app/vapor/core:ro
   env_file:
     - ./.env
   environment:
     - FASTMCP_HOST=0.0.0.0
-  command: fastmcp run vapor/mcp/main.py --transport http
+  command: fastmcp run vapor/mcp_server/main.py --transport http
   ports:
     - ${MCP_PORT}:8000
   restart: unless-stopped
