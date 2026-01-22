@@ -4,7 +4,7 @@ from typing import AsyncIterator
 from loguru import logger
 from fastmcp import FastMCP
 
-from vapor.core.db import driver
+from vapor.core.dao import driver
 from vapor.core.models import embeddings
 from . import tools
 

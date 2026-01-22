@@ -1,8 +1,8 @@
 from fastmcp import FastMCP
 from fastmcp.dependencies import Depends
 
-from vapor.core.services import GamesService
-from vapor.core.services.deps import get_games_service
+from vapor.core.dao import GamesDAO
+from vapor.core.dao.deps import get_games_dao
 from vapor.core.models.embeddings import VaporEmbeddings, get_embedder
 
 
@@ -15,7 +15,7 @@ class GamesTools(object):
         mcp_instance.tool(self.find_similar_games)
 
     async def about_the_game(
-        self, name: str, svc: GamesService = Depends(get_games_service)
+        self, name: str, dao: GamesDAO = Depends(get_games_dao)
     ) -> dict[str, str]:
         """Retrieves the "about the game" description for the game
         in the database that best matches the provided `name` using
@@ -37,12 +37,12 @@ class GamesTools(object):
                 for the best matched game, or will not be present
                 if no pre-populated description is available.
         """
-        return svc.about_the_game(name)
+        return dao.about_the_game(name)
 
     async def find_similar_games(
         self,
         summarized_description: str,
-        svc: GamesService = Depends(get_games_service),
+        dao: GamesDAO = Depends(get_games_dao),
         embedder: VaporEmbeddings = Depends(get_embedder),
     ) -> list[dict]:
         """Finds games and excerpts of their "about the game" descriptions
@@ -70,8 +70,8 @@ class GamesTools(object):
         """
         # Create an embedding of the summarized description
         embedding = embedder.embed_query(summarized_description)
-        # Use service to perform semantic search
-        return svc.find_similar_games(
+        # Use DAO to perform semantic search
+        return dao.find_similar_games(
             embedding=embedding,
             n_neighbors=10,
             min_score=0.5,
