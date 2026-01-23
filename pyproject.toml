@@ -33,6 +33,7 @@ core = [
   "langchain-ollama",
   "langchain-text-splitters",
   "langchain-mcp-adapters",
+  "httpx",
 ]
 app = [
   "vapor[core]",
