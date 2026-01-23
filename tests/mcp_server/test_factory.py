@@ -68,6 +68,7 @@ def test_create_mcp_server(mocker):
     mock_mcp_instance = mocker.MagicMock(spec=FastMCP)
     mocker.patch.object(FastMCP, "__init__", return_value=None)
     mocker.patch.object(FastMCP, "tool", return_value=None)
+    mocker.patch.object(FastMCP, "custom_route", return_value=lambda f: f)
 
     # We need to return the mocked instance
     mocker.patch("vapor.mcp_server.factory.FastMCP", return_value=mock_mcp_instance)
@@ -76,3 +77,17 @@ def test_create_mcp_server(mocker):
 
     # Verify MCP server was created
     assert result is mock_mcp_instance
+
+
+def test_create_mcp_server_registers_health_route(mocker):
+    """Tests create_mcp_server registers the /health custom route."""
+    mock_mcp_instance = mocker.MagicMock(spec=FastMCP)
+    mock_custom_route = mocker.MagicMock(return_value=lambda f: f)
+    mock_mcp_instance.custom_route = mock_custom_route
+
+    mocker.patch("vapor.mcp_server.factory.FastMCP", return_value=mock_mcp_instance)
+
+    factory.create_mcp_server()
+
+    # Verify custom_route was called with /health
+    mock_custom_route.assert_called_once_with("/health", methods=["GET"])
