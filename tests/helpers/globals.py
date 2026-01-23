@@ -18,3 +18,7 @@ NEO4J_DATABASE = "neo4j"
 OLLAMA_API_KEY = "test"
 OLLAMA_LLM = "test"
 OLLAMA_EMBEDDING_MODEL = "test"
+
+# MCP Dev vars
+MCP_PORT = "8001"
+MCP_DOCKER_HOST_NAME = "vapor-mcp"
