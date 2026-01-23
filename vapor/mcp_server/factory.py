@@ -3,6 +3,8 @@ from typing import AsyncIterator
 
 from loguru import logger
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from vapor.core.dao import driver
 from vapor.core.models import embeddings
@@ -35,14 +37,15 @@ async def lifespan(mcp: FastMCP) -> AsyncIterator[None]:
 def create_mcp_server() -> FastMCP:
     """Creates and configures the MCP server with all tools.
 
-    Args:
-        games_service: The games service instance for game-related operations.
-        embedder: The embeddings model for semantic search.
-
     Returns:
         FastMCP: Configured MCP server instance with all tools registered.
     """
     mcp = FastMCP("Vapor MCP Server", lifespan=lifespan)
+
+    # Register health endpoint
+    @mcp.custom_route("/health", methods=["GET"])
+    async def health_check(request: Request) -> JSONResponse:  # pragma: nocover
+        return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
     # Register games tools
     tools.GamesTools(mcp)
