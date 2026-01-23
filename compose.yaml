@@ -63,6 +63,37 @@ x-mcp: &mcp
   command: fastmcp run vapor/mcp_server/main.py --transport http
   ports:
     - ${MCP_PORT}:8000
+  healthcheck:
+    test: curl -f http://127.0.0.1:8000/health
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 10s
+    start_interval: 2s
+  restart: unless-stopped
+
+x-app: &app
+  image: vapor-app
+  container_name: ${APP_DOCKER_HOST_NAME}
+  build:
+    context: .
+    dockerfile: ./dockerfiles/vapor-app.dockerfile
+  volumes:
+    - ./vapor/app:/app/vapor/app:ro
+    - ./vapor/core:/app/vapor/core:ro
+    - ./.agents:/app/.agents:ro
+  env_file:
+    - ./.env
+  command: fastapi run vapor/app/main.py
+  ports:
+    - ${APP_PORT}:8000
+  healthcheck:
+    test: curl -f http://127.0.0.1:8000/status/health
+    interval: 1m
+    timeout: 2s
+    retries: 5
+    start_period: 30s
+    start_interval: 2s
   restart: unless-stopped
 
 # NOTE: All services should have a profile:
@@ -113,30 +144,23 @@ services:
       - dev
 
   # API layer
-  app:
-    image: vapor-app
-    container_name: ${APP_DOCKER_HOST_NAME}
-    build:
-      context: .
-      dockerfile: ./dockerfiles/vapor-app.dockerfile
-    volumes:
-      - ./vapor/app:/app/vapor/app:ro
-    env_file:
-      - ./.env
-    command: fastapi run vapor/app/main.py
-    ports:
-      - ${APP_PORT}:8000
-    healthcheck:
-      test: curl -f http://127.0.0.1:8000/status/health
-      interval: 1m
-      timeout: 2s
-      retries: 5
-      start_period: 10s
-      start_interval: 2s
-    restart: unless-stopped
+  app-cpu:
+    <<: *app
+    depends_on:
+      mcp-cpu:
+        condition: service_healthy
     profiles:
-      - default
+      - cpu
 
+  app-nvidia:
+    <<: *app
+    depends_on:
+      mcp-nvidia:
+        condition: service_healthy
+    profiles:
+      - nvidia-gpu
+
+  # MCP Server
   mcp-cpu:
     <<: *mcp
     depends_on:
