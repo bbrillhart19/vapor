@@ -107,29 +107,33 @@ To start a chat with your configured LLM (see the `.env` file you created during
 python vapor/chat.py
 ```
 Then you can ask questions about the Steam data. Currently, this has very basic tooling support centered around information about the games in the database, for example:
-```bash
+```text
 Ask a question:
->>> Find games similar to a story-driven RPG with choices that matter
-Based on your search for story-driven RPGs with choices that matter, here are the top recommendations:
+>>> Find games with a story-driven RPG and choices that matter
+Based on your request for story-driven RPGs where choices significantly impact the story, here are several excellent
+options from the database:
 
-Best Matches:
+Top Recommendations:
 
- 1 Arx Fatalis - Perfectly matches your criteria with "every choice you make in the game could have drastic impacts on
-   the world" and multiple endings based on your decisions.
- 2 The Witcher: Enhanced Edition - A dark fantasy RPG where you "make difficult decisions and live with the
-   consequences" in a morally ambiguous world.
- 3 Deus Ex series (Game of the Year Edition & Invisible War) - Both feature multiple solutions to problems, character
-   development choices, and dynamic, non-linear stories with responsive plot branches.
+ 1 Arx Fatalis - This game features intelligent storytelling with nonlinear gameplay where "every choice you make in the
+   game could have drastic impacts on the world" and offers multiple possible endings based on your decisions.
+ 2 The Witcher: Enhanced Edition - Set in a dark fantasy world with moral ambiguity, this RPG emphasizes story and
+   character development where you "make difficult decisions and live with the consequences" in an extraordinary tale.
+ 3 Deus Ex: Game of the Year Edition - Offers multiple solutions to problems and character development choices that
+   ensure varied gameplay experiences. The game adapts to your playstyle with rich character development systems.
+ 4 Deus Ex: Invisible War - Features a dynamic, non-linear story with responsive plot branches and unprecedented freedom
+   of action, allowing for non-lethal, ethical approaches to conflict resolution.
 
-Other Good Options:
+Other Notable Games:
 
- 4 Neverwinter Nights 2: Platinum - Your actions, interactions, and companions all change the course of your adventure.
- 5 Mass Effect (2007) - While the description is more general, it's known for its choice-driven narrative in an
-   immersive storyline.
+ • Mass Effect (2007) - An immersive open-ended storyline with real-time character interaction and squad-based tactical
+   combat.
+ • Neverwinter Nights 2: Platinum - Your actions, interactions, companions, and stronghold decisions all change the
+   course of your adventure.
+ • BioShock - While not a traditional RPG, it offers varied encounters where no two gamers will play the same way.
 
-Arx Fatalis stands out as the strongest recommendation since its description specifically emphasizes that choices have
-drastic impacts on the world and lead to different endings, which directly aligns with your request for "choices that
-matter."
+These games all emphasize player agency with meaningful choices that shape the narrative and outcomes, which aligns
+perfectly with what you're looking for in a story-driven RPG experience.
 ```
 
 ## Development
