@@ -11,6 +11,7 @@ COPY ./pyproject.toml ./pyproject.toml
 COPY ./vapor/__init__.py ./vapor/__init__.py
 COPY ./vapor/core ./vapor/core
 COPY ./vapor/app ./vapor/app
+COPY ./.agents ./.agents
 
 # Install the package
 RUN pip install -e .[app]
