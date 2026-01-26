@@ -2,4 +2,10 @@ data/
 dockerfiles/
 docs/
 .gitignore
-compose*.yaml
+.web
+.state
+.git
+__pycache__/*
+compose.yaml
+compose.*.yaml
+uploaded_files

@@ -1,0 +1,15 @@
+### Compose structure for services requiring NVIDIA GPU ###
+# Resources (shared configs)
+x-nvidia-gpu: &nvidia-gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+services:
+  # Ollama w/ NVIDIA GPU (merges with base in compose.yaml)
+  ollama:
+    <<: *nvidia-gpu

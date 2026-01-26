@@ -133,6 +133,7 @@ class State(rx.State):
         yield
 
         api_url = get_vapor_api_url()
+        print(f"PROCESSING QUESTION w/ {api_url}")
         event_type = None
 
         try:
