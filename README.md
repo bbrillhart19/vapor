@@ -7,7 +7,8 @@
     <a href="https://docs.langchain.com/"><img alt="LangChain" src="https://img.shields.io/badge/LangChain-1c3c3c.svg?logo=langchain&logoColor=white"></a>
     <a href="https://docs.ollama.com/"><img alt="Ollama" src="https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000"></a>
     <a href="https://fastapi.tiangolo.com/"><img alt="FastAPI" src=https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white></a>
-    <a href="https://gofastmcp.com/getting-started/welcome"><img alt="FastMCP" src=https://img.shields.io/badge/MCP-FastMCP_2.x-blue></a>
+    <a href="https://gofastmcp.com/getting-started/welcome"><img alt="FastMCP" src=https://img.shields.io/badge/FastMCP-18104A></a>
+    <a href="https://reflex.dev/docs/getting-started/introduction/"><img alt="Reflex" src=https://img.shields.io/badge/Reflex-8A2BE2></a>
 </p>
 <p align="center">
     <a href="https://github.com/bbrillhart19/vapor/actions/workflows/test.yml?query=branch:main"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/bbrillhart19/vapor/test.yml?branch=main"></a>
@@ -86,6 +87,7 @@ bash scripts/stop.sh
 
 ## Usage
 ### Neo4j Database Population
+***NOTE: THIS WILL EVENTUALLY BE MOVED TO AIRFLOW***
 First, you will need to populate the graph with data from Steam. This process will set you as the central node and populate in hops outwards from your friends (friends of friends, ..., etc.). See the usage here:
 ```shell
 python vapor/populate.py -h
@@ -102,39 +104,9 @@ MATCH p=()-[:HAS_FRIEND]->() RETURN p LIMIT 50
 ```
 
 ### Chat
-To start a chat with your configured LLM (see the `.env` file you created during [setup](#setup-environment)):
-```shell
-python vapor/chat.py
-```
-Then you can ask questions about the Steam data. Currently, this has very basic tooling support centered around information about the games in the database, for example:
-```text
-Ask a question:
->>> Find games with a story-driven RPG and choices that matter
-Based on your request for story-driven RPGs where choices significantly impact the story, here are several excellent
-options from the database:
+Navigate to http://localhost:3000 to use the Chat UI:
 
-Top Recommendations:
-
- 1 Arx Fatalis - This game features intelligent storytelling with nonlinear gameplay where "every choice you make in the
-   game could have drastic impacts on the world" and offers multiple possible endings based on your decisions.
- 2 The Witcher: Enhanced Edition - Set in a dark fantasy world with moral ambiguity, this RPG emphasizes story and
-   character development where you "make difficult decisions and live with the consequences" in an extraordinary tale.
- 3 Deus Ex: Game of the Year Edition - Offers multiple solutions to problems and character development choices that
-   ensure varied gameplay experiences. The game adapts to your playstyle with rich character development systems.
- 4 Deus Ex: Invisible War - Features a dynamic, non-linear story with responsive plot branches and unprecedented freedom
-   of action, allowing for non-lethal, ethical approaches to conflict resolution.
-
-Other Notable Games:
-
- • Mass Effect (2007) - An immersive open-ended storyline with real-time character interaction and squad-based tactical
-   combat.
- • Neverwinter Nights 2: Platinum - Your actions, interactions, companions, and stronghold decisions all change the
-   course of your adventure.
- • BioShock - While not a traditional RPG, it offers varied encounters where no two gamers will play the same way.
-
-These games all emphasize player agency with meaningful choices that shape the narrative and outcomes, which aligns
-perfectly with what you're looking for in a story-driven RPG experience.
-```
+**TODO** [demo GIF](./docs/demo.gif) **TODO**
 
 ## Development
 Refer to this section only if you are developing the codebase. 
@@ -159,7 +131,7 @@ pip install -e .[dev,all]
 ### Code Formatting
 This codebase is formatted using `black`. Prior to pushing any changes/commits, format them with:
 ```shell
-black vapor tests
+black vapor reflex-ui tests
 ```
 Additionally, you can use `flake8` to lint:
 ```shell
