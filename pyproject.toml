@@ -43,12 +43,12 @@ mcp = [
   "vapor[core]",
   "fastmcp",
 ]
-chat = [
+ui = [
   "reflex>=0.7.11",
   "httpx"
 ]
 all = [
-  "vapor[core,app,mcp]"
+  "vapor[core,app,mcp,ui]"
 ]
 
 [tool.pytest.ini_options]
