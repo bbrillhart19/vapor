@@ -168,12 +168,14 @@ services:
     image: vapor-reflex
     container_name: ${REFLEX_BACKEND_DOCKER_HOST_NAME}
     build:
-      context: .
-      dockerfile: ./dockerfiles/reflex.dockerfile
+      dockerfile: ./dockerfiles/reflex-backend.dockerfile
+      args:
+        - REFLEX_REDIS_URL=redis://${REFLEX_REDIS_DOCKER_HOST_NAME}
     environment:
       - REFLEX_DB_URL=postgresql+psycopg://postgres:secret@${REFLEX_PG_DOCKER_HOST_NAME}/postgres
-      - REFLEX_REDIS_URL=redis://${REFLEX_REDIS_DOCKER_HOST_NAME}:6379
       - VAPOR_API_HOST=${APP_DOCKER_HOST_NAME}
+    ports:
+     - ${REFLEX_BACKEND_PORT}:8000
     depends_on:
       - postgres
       - redis
@@ -184,44 +186,25 @@ services:
     restart: unless-stopped
     profiles:
       - default
-  
-  # webserver:
-  #   image: vapor-webserver
-  #   container_name: vapor-webserver
-  #   environment:
-  #     - API_URL=http://${REFLEX_BACKEND_DOCKER_HOST_NAME}:8000
-  #   ports:
-  #     # - 443:443
-  #     - 3000:80 # For acme-challenge via HTTP.
-  #   build:
-  #     context: .
-  #     dockerfile: ./dockerfiles/webserver.dockerfile
-  #   # volumes:
-  #   #   - caddy-data:/root/.caddy
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - reflex
-  #   profiles:
-  #     - default
 
-  # webserver:
-  #   image: vapor-webserver
-  #   container_name: vapor-webserver
-  #   environment:
-  #     DOMAIN: ${DOMAIN:-localhost}
-  #   ports:
-  #     - 443:443
-  #     - 80:80 # For acme-challenge via HTTP.
-  #   build:
-  #     context: .
-  #     dockerfile: ./dockerfiles/webserver-caddy.dockerfile
-  #   volumes:
-  #     - caddy-data:/root/.caddy
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - reflex
-  #   profiles:
-  #     - default
+  webserver:
+    image: vapor-webserver
+    container_name: ${REFLEX_WEB_DOCKER_HOST_NAME}
+    build:
+      context: .
+      dockerfile: ./dockerfiles/webserver.dockerfile
+      args:
+        - REFLEX_API_URL=http://localhost:${REFLEX_BACKEND_PORT}
+    volumes:
+      - ./reflex-ui/nginx.conf.template:/etc/nginx/templates/default.conf.template
+    env_file:
+      - ./.env
+    ports:
+      - ${REFLEX_WEB_PORT}:80
+    depends_on:
+      - reflex
+    profiles:
+      - default
   
 networks:
   dev:
@@ -231,7 +214,5 @@ volumes:
   db-data:
   # Uploaded files
   upload-data:
-  # TLS keys and certificates
-  caddy-data:
   # Postgres
   postgres-data:
