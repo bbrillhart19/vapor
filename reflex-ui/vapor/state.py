@@ -1,9 +1,11 @@
 import json
 import os
-from typing import Any, TypedDict
+from typing import Any
 
 import httpx
 import reflex as rx
+
+from vapor._types import QA, ToolCall
 
 
 def get_vapor_api_url() -> str:
@@ -13,11 +15,34 @@ def get_vapor_api_url() -> str:
     return f"http://{host}:{port}"
 
 
-class QA(TypedDict):
-    """A question and answer pair."""
+def format_tool_input(tool_input: dict | str | Any) -> str:
+    """Format tool input as YAML-like display without JSON syntax.
 
-    question: str
-    answer: str
+    Args:
+        tool_input: The tool input to format.
+
+    Returns:
+        A clean YAML-like formatted string.
+    """
+    if isinstance(tool_input, str):
+        return tool_input
+
+    if not isinstance(tool_input, dict):
+        return str(tool_input)
+
+    lines = []
+    for key, value in tool_input.items():
+        if isinstance(value, dict):
+            lines.append(f"{key}:")
+            for k, v in value.items():
+                lines.append(f"  {k}: {v}")
+        elif isinstance(value, list):
+            lines.append(f"{key}:")
+            for item in value:
+                lines.append(f"  - {item}")
+        else:
+            lines.append(f"{key}: {value}")
+    return "\n".join(lines)
 
 
 class State(rx.State):
@@ -33,6 +58,9 @@ class State(rx.State):
 
     # Whether we are processing the question.
     processing: bool = False
+
+    # Whether we are awaiting the first response event.
+    awaiting_response: bool = False
 
     # Whether the new chat modal is open.
     is_modal_open: bool = False
@@ -118,23 +146,41 @@ class State(rx.State):
             yield value
 
     @rx.event
+    def toggle_tools_collapsed(self, qa_index: int):
+        """Toggle the collapsed state of tool calls for a QA pair.
+
+        Args:
+            qa_index: The index of the QA pair in the current chat.
+        """
+        if 0 <= qa_index < len(self._chats[self.current_chat]):
+            qa = self._chats[self.current_chat][qa_index]
+            qa["tools_collapsed"] = not qa["tools_collapsed"]
+            self._chats = self._chats
+
+    @rx.event
     async def vapor_process_question(self, question: str):
         """Get the response from the Vapor API.
 
         Args:
             question: The user's question.
         """
-        # Add the question to the list of questions.
-        qa = QA(question=question, answer="")
+        # Add the question to the list of questions with new fields.
+        qa = QA(
+            question=question,
+            answer="",
+            tool_calls=[],
+            tools_collapsed=False,
+        )
         self._chats[self.current_chat].append(qa)
 
         # Clear the input and start the processing.
         self.processing = True
+        self.awaiting_response = True
         yield
 
         api_url = get_vapor_api_url()
-        print(f"PROCESSING QUESTION w/ {api_url}")
         event_type = None
+        has_started_streaming = False
 
         try:
             async with httpx.AsyncClient() as client:
@@ -153,37 +199,105 @@ class State(rx.State):
                         elif line.startswith("data:"):
                             data = json.loads(line.split(":", 1)[1].strip())
 
-                            if event_type == "content":
-                                self._chats[self.current_chat][-1]["answer"] += data[
-                                    "text"
+                            if event_type == "on_tool_start":
+                                # Add new tool call with pending status
+                                # Keep awaiting_response=True to show ellipsis during tools
+                                # Format tool_input as YAML-like string
+                                formatted_input = format_tool_input(data["tool_input"])
+                                tool_call = ToolCall(
+                                    tool_name=data["tool_name"],
+                                    index=data["index"],
+                                    tool_input=formatted_input,
+                                    status="pending",
+                                )
+                                # Create completely new objects to ensure Reflex detects change
+                                current_qa = self._chats[self.current_chat][-1]
+                                new_qa = {
+                                    **current_qa,
+                                    "tool_calls": [
+                                        *current_qa["tool_calls"],
+                                        tool_call,
+                                    ],
+                                }
+                                new_chat_list = [
+                                    *self._chats[self.current_chat][:-1],
+                                    new_qa,
                                 ]
-                                self._chats = self._chats
+                                self._chats = {
+                                    **self._chats,
+                                    self.current_chat: new_chat_list,
+                                }
                                 yield
 
-                            elif event_type == "tool_call":
-                                tool_info = (
-                                    f"\n\n*Using tool: {data['tool_name']}...*\n\n"
-                                )
-                                self._chats[self.current_chat][-1][
-                                    "answer"
-                                ] += tool_info
-                                self._chats = self._chats
+                            elif event_type == "on_tool_end":
+                                # Find the pending tool and mark it complete
+                                current_qa = self._chats[self.current_chat][-1]
+                                updated_tools = []
+                                for tc in current_qa["tool_calls"]:
+                                    if tc["status"] == "pending":
+                                        updated_tools.append(
+                                            {**tc, "status": "complete"}
+                                        )
+                                    else:
+                                        updated_tools.append(dict(tc))
+                                new_qa = {**current_qa, "tool_calls": updated_tools}
+                                new_chat_list = [
+                                    *self._chats[self.current_chat][:-1],
+                                    new_qa,
+                                ]
+                                self._chats = {
+                                    **self._chats,
+                                    self.current_chat: new_chat_list,
+                                }
+                                yield
+
+                            elif event_type == "on_chat_model_stream":
+                                # First event received - stop showing loading indicator
+                                self.awaiting_response = False
+                                # First content chunk - collapse tools
+                                current_qa = self._chats[self.current_chat][-1]
+                                if (
+                                    not has_started_streaming
+                                    and current_qa["tool_calls"]
+                                ):
+                                    current_qa = {**current_qa, "tools_collapsed": True}
+                                    has_started_streaming = True
+
+                                # Update answer with new text
+                                new_qa = {
+                                    **current_qa,
+                                    "answer": current_qa["answer"] + data["text"],
+                                }
+                                new_chat_list = [
+                                    *self._chats[self.current_chat][:-1],
+                                    new_qa,
+                                ]
+                                self._chats = {
+                                    **self._chats,
+                                    self.current_chat: new_chat_list,
+                                }
                                 yield
 
                             elif event_type == "done":
                                 break
 
         except httpx.ConnectError:
-            self._chats[self.current_chat][-1][
-                "answer"
-            ] = "Error: Could not connect to Vapor API. Is it running?"
-            self._chats = self._chats
+            current_qa = self._chats[self.current_chat][-1]
+            new_qa = {
+                **current_qa,
+                "answer": "Error: Could not connect to Vapor API. Is it running?",
+            }
+            new_chat_list = [*self._chats[self.current_chat][:-1], new_qa]
+            self._chats = {**self._chats, self.current_chat: new_chat_list}
             yield
         except httpx.TimeoutException:
-            self._chats[self.current_chat][-1][
-                "answer"
-            ] += "\n\nError: Request timed out."
-            self._chats = self._chats
+            current_qa = self._chats[self.current_chat][-1]
+            new_qa = {
+                **current_qa,
+                "answer": current_qa["answer"] + "\n\nError: Request timed out.",
+            }
+            new_chat_list = [*self._chats[self.current_chat][:-1], new_qa]
+            self._chats = {**self._chats, self.current_chat: new_chat_list}
             yield
 
         # Toggle the processing flag.
